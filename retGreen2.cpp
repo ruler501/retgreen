@@ -251,7 +251,7 @@ bool goToPom(colorRange range, void* ourBot)
     vector< vector<Point> > contours;
     vector<Mat> hueChan(3);
     vector<int> tmpCont(3);
-    int goodContour=-1, tmpInt;
+    int goodContour=-1, tmpInt, tmpIntB;
     Point2f center;
     float radius;
     for(int i=0; i < 10; i++)
@@ -377,6 +377,27 @@ bool goToPom(colorRange range, void* ourBot)
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
         cout << "Turning l:" << 10*(YBARRIER-center.y) - 2*(CENTERX-center.x) << " r:" << 10*(YBARRIER-center.y) + 2*(CENTERX-center.x) << endl;
 #endif// DEBUG_POMS
+		if(ABS(15*(YBARRIER-center.y) - 3*(CENTERX-center.x)) < 125 || ABS(15*(YBARRIER-center.y) + 3*(CENTERX-center.x)) < 125)
+		{
+			tmpInt=15*(YBARRIER-center.y) - 3*(CENTERX-center.x);
+			tmpIntB=15*(YBARRIER-center.y) + 3*(CENTERX-center.x);
+			if(tmpInt > tmpIntB )
+			{
+				mav(0, tmpInt/ABS(tmpInt)*125);
+				mav(2, tmpIntB + (tmpInt/ABS(tmpInt)*125 - tmpInt));
+
+			}
+			else
+			{
+				mav(0, tmpInt + (tmpIntB/ABS(tmpIntB)*125 - tmpIntB));
+				mav(2, tmpIntB/ABS(tmpIntB)*125);
+			}
+		}
+		else
+		{
+			mav(0, 15*(YBARRIER-center.y) - 3*(CENTERX-center.x));
+			mav(2, 15*(YBARRIER-center.y) + 3*(CENTERX-center.x));
+		}
         mav(0, 15*(YBARRIER-center.y) - 3*(CENTERX-center.x));
         mav(2, 15*(YBARRIER-center.y) + 3*(CENTERX-center.x));
     }
