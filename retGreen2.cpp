@@ -377,8 +377,8 @@ bool goToPom(colorRange range, void* ourBot)
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
         cout << "Turning l:" << 10*(YBARRIER-center.y) - 2*(CENTERX-center.x) << " r:" << 10*(YBARRIER-center.y) + 2*(CENTERX-center.x) << endl;
 #endif// DEBUG_POMS
-        mav(0, 10*(YBARRIER-center.y) - 2*(CENTERX-center.x));
-        mav(2, 10*(YBARRIER-center.y) + 2*(CENTERX-center.x));
+        mav(0, 15*(YBARRIER-center.y) - 3*(CENTERX-center.x));
+        mav(2, 15*(YBARRIER-center.y) + 3*(CENTERX-center.x));
     }
 #ifdef DEBUG_POMS
     cout << "We has da gots em" << endl;
