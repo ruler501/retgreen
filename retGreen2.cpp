@@ -26,7 +26,7 @@ char* filename;
 #define RBIAS		5
 #define YBARRIER	75
 #define CENTERX		120
-#define MAXLOST		10
+#define MAXLOST		15
 
 using namespace cv;
 using namespace std;
@@ -98,20 +98,6 @@ public:
     }
 };
 
-/*
-colorRange orangeRange()
-{
-    colorRange orange;
-    orange.setHueMin(6);
-    orange.setHueRange(13);
-    orange.setSatMin(10);
-    orange.setSatRange(80);
-    orange.setValMin(196);
-    orange.setValRange(59);
-    return orange;
-}
-*/
-
 colorRange orangeRange()
 {
     colorRange orange;
@@ -124,27 +110,13 @@ colorRange orangeRange()
     return orange;
 }
 
-/*
-colorRange greenRange()
-{
-    colorRange green;
-    green.setHueMin(37);
-    green.setHueRange(33);
-    green.setSatMin(95);
-    green.setSatRange(106);
-    green.setValMin(104);
-    green.setValRange(60);
-    return green;
-}
-*/
-//119+-10
 colorRange greenRange()
 {
     colorRange green;
     green.setHueMin(25);
     green.setHueRange(80);
-    green.setSatMin(135);
-    green.setSatRange(120);
+    green.setSatMin(120);
+    green.setSatRange(135);
     green.setValMin(76);
     green.setValRange(75);
     return green;
@@ -387,10 +359,10 @@ bool goToPom(colorRange range, void* ourBot)
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
         cout << "Turning l:" << 10*(YBARRIER-center.y) - 2*(CENTERX-center.x) << " r:" << 10*(YBARRIER-center.y) + 2*(CENTERX-center.x) << endl;
 #endif// DEBUG_POMS
-		if(ABS(15*(YBARRIER-center.y) - 3*(CENTERX-center.x)) < 125 || ABS(15*(YBARRIER-center.y) + 3*(CENTERX-center.x)) < 125)
+		if(ABS(15*(YBARRIER-center.y) - 5*(CENTERX-center.x)) < 125 || ABS(15*(YBARRIER-center.y) + 5*(CENTERX-center.x)) < 125)
 		{
-			tmpInt=15*(YBARRIER-center.y) - 3*(CENTERX-center.x);
-			tmpIntB=15*(YBARRIER-center.y) + 3*(CENTERX-center.x);
+			tmpInt=15*(YBARRIER-center.y) - 5*(CENTERX-center.x);
+			tmpIntB=15*(YBARRIER-center.y) + 5*(CENTERX-center.x);
 			if(tmpInt > tmpIntB )
 			{
 				mav(0, tmpInt/ABS(tmpInt)*125);
@@ -405,11 +377,9 @@ bool goToPom(colorRange range, void* ourBot)
 		}
 		else
 		{
-			mav(0, 15*(YBARRIER-center.y) - 3*(CENTERX-center.x));
-			mav(2, 15*(YBARRIER-center.y) + 3*(CENTERX-center.x));
+			mav(0, 15*(YBARRIER-center.y) - 5*(CENTERX-center.x));
+			mav(2, 15*(YBARRIER-center.y) + 5*(CENTERX-center.x));
 		}
-        mav(0, 15*(YBARRIER-center.y) - 3*(CENTERX-center.x));
-        mav(2, 15*(YBARRIER-center.y) + 3*(CENTERX-center.x));
     }
 #ifdef DEBUG_POMS
     cout << "We has da gots em" << endl;
@@ -484,7 +454,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
     bool seperated=true;
     for(int i=0; i<5; i++)
     {
-        moveOrangeBack(rangeB,0);
+        moveOrangeBack(rangeA,0);
 //Figure out if it worked
         cap >> source;
 //clear out contours
@@ -638,9 +608,19 @@ int main(int argc, char* argv[])
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, 120);
     Mat sourcetmp;
     for(int i=0; i<15; i++) cap >> sourcetmp;
+    enable_servos();
     retrieveGreen(greenRange(), orangeRange(), 0);
+    mav(0,500);
+    mav(2,500);
+    msleep(300);
+    moveClaw(CLAW_CLOSED);
+    moveArm(ARM_BASKET);
+    moveClaw(CLAW_OPEN);
+    moveClaw(CLAW_POPEN);
+    moveArm(ARM_UP);
     off(0);
     off(2);
+    disable_servos()
     return 0;
 }
 #endif// TESTCASES_RETGREEN
