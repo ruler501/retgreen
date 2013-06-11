@@ -23,9 +23,10 @@ char* filename;
 //#include "Robot.h"
 #endif// ONCOMP
 
-#define RBIAS     5
-#define YBARRIER 75
-#define CENTERX  120
+#define RBIAS		5
+#define YBARRIER	75
+#define CENTERX		120
+#define MAXLOST		10
 
 using namespace cv;
 using namespace std;
@@ -365,8 +366,17 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
             cout << "We lost the pom" << endl;
 #endif
-            mav(0, -150);
-            mav(2,  150);
+			if (++ticksLost < MAXLOST)
+			{
+				mav(0, -150);
+				mav(2,  150);
+			}
+			else
+			{
+				mav(0,  150);
+				mav(2, -150);
+			}
+			if(ticksLost>MAXLOST*3) { ticksLost=0; return false; }
             continue;
         }
         sort(orderedContours.begin(), orderedContours.end(), greaterArea);
