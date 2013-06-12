@@ -8,12 +8,12 @@
 #define ABS(x) ((x)>0 ? (x) : -1*(x))
 
 //! Defined if we want to print out debug info
-#define DEBUG_RETGREEN 1
-#define DEBUG_POMS 1
+//#define DEBUG_RETGREEN 1
+//#define DEBUG_POMS 1
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
-#define LOG 1
+//#define LOG 1
 
 #ifdef ONCOMP
 char* filename;
@@ -38,8 +38,10 @@ enum { CLAW_OPEN, CLAW_POPEN, CLAW_CLOSED };
 enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
-int ticksLost=0, pic=0;
+int ticksLost=0, pic=0, lastY=-1;
 const float errorX=5;
+point LastCenter=(-1,-1), lastVel=(0,0);
+
 
 class colorRange
 {
@@ -136,7 +138,7 @@ void moveClaw(int position)
             set_servo_position(CLAWPORT, 1600);
             break;
     }
-    msleep(100);
+    msleep(750);
 }
 
 void moveArm(int position)
@@ -152,7 +154,7 @@ void moveArm(int position)
         case ARM_DOWN:
             set_servo_position(ARMPORT, 0);
     }
-    msleep(100);
+    msleep(750);
 }
 
 void moveBasket(int position)
@@ -160,7 +162,7 @@ void moveBasket(int position)
     switch (position)
     {
         case BASKET_UP:
-            set_servo_position(BASKETPORT, 550);
+            set_servo_position(BASKETPORT, 920);
             break;
         case BASKET_DOWN:
             set_servo_position(BASKETPORT, 500);
@@ -169,7 +171,7 @@ void moveBasket(int position)
 			set_servo_position(BASKETPORT, 1250);
 			break;
     }
-    msleep(0);
+    msleep(750);
 }
 
 //! Evaluates my custom data type to see whether the first's area is larger than the second's
@@ -338,7 +340,12 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
             cout << "We lost the pom" << endl;
 #endif
-			if (++ticksLost < MAXLOST)
+			if (ticksLost < 5 && !lastVel.x && !lastVel.y)
+			{
+				mav(0, -lastVel.x*2);
+				mav(2, -lastVel.y*2);
+			}
+			else if (++ticksLost < MAXLOST+5)
 			{
 				mav(0, -150);
 				mav(2,  150);
@@ -348,7 +355,7 @@ bool goToPom(colorRange range, void* ourBot)
 				mav(0,  150);
 				mav(2, -150);
 			}
-			if(ticksLost>MAXLOST*3) { ticksLost=0; return false; }
+			if(ticksLost > 5+MAXLOST*3) { ticksLost=0; return false; }
             continue;
         }
         sort(orderedContours.begin(), orderedContours.end(), greaterArea);
@@ -359,27 +366,15 @@ bool goToPom(colorRange range, void* ourBot)
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
         cout << "Turning l:" << 10*(YBARRIER-center.y) - 2*(CENTERX-center.x) << " r:" << 10*(YBARRIER-center.y) + 2*(CENTERX-center.x) << endl;
 #endif// DEBUG_POMS
-		if(ABS(15*(YBARRIER-center.y) - 5*(CENTERX-center.x)) < 125 || ABS(15*(YBARRIER-center.y) + 5*(CENTERX-center.x)) < 125)
+		tmpInt=10*(YBARRIER-center.y) - 2*(CENTERX-center.x);
+		tmpIntB=10*(YBARRIER-center.y) + 2*(CENTERX-center.x);
+		lastVel=(tmpInt, tmpIntB);
+		if(ABS(tmpInt) < 125 || ABS(tmpIntB) < 125)
 		{
-			tmpInt=15*(YBARRIER-center.y) - 5*(CENTERX-center.x);
-			tmpIntB=15*(YBARRIER-center.y) + 5*(CENTERX-center.x);
-			if(tmpInt > tmpIntB )
-			{
-				mav(0, tmpInt/ABS(tmpInt)*125);
-				mav(2, tmpIntB + (tmpInt/ABS(tmpInt)*125 - tmpInt));
-
-			}
-			else
-			{
-				mav(0, tmpInt + (tmpIntB/ABS(tmpIntB)*125 - tmpIntB));
-				mav(2, tmpIntB/ABS(tmpIntB)*125);
-			}
+			if(tmpInt > tmpIntB ) lastVel=(tmpInt/ABS(tmpInt)*125, tmpInt/ABS(tmpInt)*125 + tmpInt - tmpIntB);
+			else lastVel=(tmpIntB/ABS(tmpIntB)*125 + tmpIntB - tmpInt, tmpIntB/ABS(tmpIntB)*125);
 		}
-		else
-		{
-			mav(0, 15*(YBARRIER-center.y) - 5*(CENTERX-center.x));
-			mav(2, 15*(YBARRIER-center.y) + 5*(CENTERX-center.x));
-		}
+		mav(lastVel.x, lastVel.y);
     }
 #ifdef DEBUG_POMS
     cout << "We has da gots em" << endl;
@@ -399,22 +394,23 @@ bool moveOrangeBack(colorRange rangeA, void* ourBot)
     moveArm(ARM_DOWN);
     moveBasket(BASKET_UP);
     moveClaw(CLAW_OPEN);
-    enable_servos();
 //Grab it, move it back and turn to look at it
     mav(0, 900);
     mav(2, 900);
-    msleep(1650);
+    msleep(1250);
     moveClaw(CLAW_CLOSED);
     mav(0, -900);
     mav(2, -900);
     msleep(750);
+    mav(0,  500);
+    mav(2, -500);
     moveClaw(CLAW_OPEN);
+    mav(0, -500);
+    mav(2,  500);
+    msleep(750);
     mav(0, -900);
     mav(2, -900);
-    msleep(900);
-    mav(0, -200);
-    mav(2,  200);
-    msleep(150);
+    msleep(1000);
     off(0);
     off(2);
     return retval;
@@ -451,10 +447,10 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
     int tmpInt;
     Point2f centerA, centerB;
     float radiusA, radiusB;
-    bool seperated=true;
-    for(int i=0; i<5; i++)
+    bool seperated=true, success=true;
+    for(int i=0; i<7.5; i++)
     {
-        moveOrangeBack(rangeA,0);
+        success = moveOrangeBack(rangeA,0);
 //Figure out if it worked
         cap >> source;
 //clear out contours
@@ -571,24 +567,25 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 
         if(seperated)
         {
+	    moveClaw(CLAW_OPEN);
             goToPom(rangeA, 0);
             mav(0, 900);
             mav(2, 900);
             msleep(1500);
             moveClaw(CLAW_CLOSED);
             cout << "We got it" << endl;
-            disable_servos();
             return true;
         }
-        else
+        /*else
         {
             if(centerA.y < YBARRIER)
 #ifdef DEBUG_RETGREEN
             cout << "It didn't work. Implement backup" << endl;;
 #endif
-        }
+        }*/
     }
     disable_servos();
+    cout << "We couldn't find nuttin" << endl;
     return false;
 }
 
@@ -604,23 +601,24 @@ int main(int argc, char* argv[])
 #ifdef TESTCASES_RETGREEN
 int main(int argc, char* argv[])
 {
-	cap.set(CV_CAP_PROP_FRAME_WIDTH, 160);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, 160);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, 120);
     Mat sourcetmp;
     for(int i=0; i<15; i++) cap >> sourcetmp;
-    enable_servos();
-    retrieveGreen(greenRange(), orangeRange(), 0);
-    mav(0,500);
-    mav(2,500);
-    msleep(300);
-    moveClaw(CLAW_CLOSED);
-    moveArm(ARM_BASKET);
-    moveClaw(CLAW_OPEN);
+    moveArm(ARM_DOWN);
+    moveBasket(BASKET_UP);
     moveClaw(CLAW_POPEN);
-    moveArm(ARM_UP);
-    off(0);
-    off(2);
-    disable_servos()
+    enable_servos();
+    if(retrieveGreen(greenRange(), orangeRange(), 0))
+    {
+		moveArm(ARM_BASKET);
+		moveClaw(CLAW_OPEN);
+		moveClaw(CLAW_POPEN);
+		moveArm(ARM_UP);
+    }
+    else cout << "We lost everything good and wonderful" << endl;
+    alloff();
+    disable_servos();
     return 0;
 }
 #endif// TESTCASES_RETGREEN
