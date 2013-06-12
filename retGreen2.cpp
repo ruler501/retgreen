@@ -40,7 +40,8 @@ enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, pic=0, lastY=-1;
 const float errorX=5;
-point LastCenter=(-1,-1), lastVel=(0,0);
+Point LastCenter=(-1, -1);
+int lastVel[]={0,0,0,0};
 
 
 class colorRange
@@ -340,22 +341,22 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
             cout << "We lost the pom" << endl;
 #endif
-			if (ticksLost < 5 && !lastVel.x && !lastVel.y)
+			if (ticksLost++ < 5 && (lastVel[LMOTOR] > 0  || lastVel[RMOTOR] > 0))
 			{
-				mav(0, -lastVel.x*2);
-				mav(2, -lastVel.y*2);
+				mav(LMOTOR, -lastVel[LMOTOR]*2);
+				mav(RMOTOR, -lastVel[RMOTOR]*2);
 			}
-			else if (++ticksLost < MAXLOST+5)
+			else if (ticksLost < MAXLOST+5)
 			{
-				mav(0, -150);
-				mav(2,  150);
+				mav(LMOTOR, -150);
+				mav(RMOTOR,  150);
 			}
 			else
 			{
-				mav(0,  150);
-				mav(2, -150);
+				mav(LMOTOR,  150);
+				mav(RMOTOR, -150);
 			}
-			if(ticksLost > 5+MAXLOST*3) { ticksLost=0; return false; }
+			if(ticksLost > MAXCORRECT+MAXLOST*3) { ticksLost=0; return false; }
             continue;
         }
         sort(orderedContours.begin(), orderedContours.end(), greaterArea);
@@ -366,24 +367,23 @@ bool goToPom(colorRange range, void* ourBot)
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
         cout << "Turning l:" << 10*(YBARRIER-center.y) - 2*(CENTERX-center.x) << " r:" << 10*(YBARRIER-center.y) + 2*(CENTERX-center.x) << endl;
 #endif// DEBUG_POMS
-		tmpInt=10*(YBARRIER-center.y) - 2*(CENTERX-center.x);
-		tmpIntB=10*(YBARRIER-center.y) + 2*(CENTERX-center.x);
-		lastVel=(tmpInt, tmpIntB);
+		lastVel[LMOTOR] = tmpInt = 10*(YBARRIER-center.y) - 2*(CENTERX-center.x);
+		lastVel[RMOTOR] = tmpIntB = 10*(YBARRIER-center.y) + 2*(CENTERX-center.x);
 		if(ABS(tmpInt) < 125 || ABS(tmpIntB) < 125)
 		{
-			if(tmpInt > tmpIntB ) lastVel=(tmpInt/ABS(tmpInt)*125, tmpInt/ABS(tmpInt)*125 + tmpInt - tmpIntB);
-			else lastVel=(tmpIntB/ABS(tmpIntB)*125 + tmpIntB - tmpInt, tmpIntB/ABS(tmpIntB)*125);
+			if(tmpInt > tmpIntB ) { lastVel[LMOTOR]=tmpInt/ABS(tmpInt)*125; lastVel[RMOTOR] = tmpInt/ABS(tmpInt)*125 + tmpInt - tmpIntB; }
+			else { lastVel[LMOTOR]=tmpIntB/ABS(tmpIntB)*125 + tmpIntB - tmpInt lastVel[RMOTOR] = tmpIntB/ABS(tmpIntB)*125); }
 		}
-		mav(lastVel.x, lastVel.y);
+		mav(lastVel[LMOTOR], lastVel[RMOTOR]);
     }
 #ifdef DEBUG_POMS
     cout << "We has da gots em" << endl;
 #endif
-    //mav(0,  400);
-    //mav(2, -400);
+    //mav(LMOTOR,  400);
+    //mav(RMOTOR, -400);
     //msleep(100);
-    off(0);
-    off(2);
+    off(LMOTOR);
+    off(RMOTOR);
     return true;
 }
 
@@ -395,24 +395,24 @@ bool moveOrangeBack(colorRange rangeA, void* ourBot)
     moveBasket(BASKET_UP);
     moveClaw(CLAW_OPEN);
 //Grab it, move it back and turn to look at it
-    mav(0, 900);
-    mav(2, 900);
+    mav(LMOTOR, 900);
+    mav(RMOTOR, 900);
     msleep(1250);
     moveClaw(CLAW_CLOSED);
-    mav(0, -900);
-    mav(2, -900);
+    mav(LMOTOR, -900);
+    mav(RMOTOR, -900);
     msleep(750);
-    mav(0,  500);
-    mav(2, -500);
+    mav(LMOTOR,  500);
+    mav(RMOTOR, -500);
     moveClaw(CLAW_OPEN);
-    mav(0, -500);
-    mav(2,  500);
+    mav(LMOTOR, -500);
+    mav(RMOTOR,  500);
     msleep(750);
-    mav(0, -900);
-    mav(2, -900);
+    mav(LMOTOR, -900);
+    mav(RMOTOR, -900);
     msleep(1000);
-    off(0);
-    off(2);
+    off(LMOTOR);
+    off(RMOTOR);
     return retval;
 }
 
@@ -569,8 +569,8 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         {
 	    moveClaw(CLAW_OPEN);
             goToPom(rangeA, 0);
-            mav(0, 900);
-            mav(2, 900);
+            mav(LMOTOR, 900);
+            mav(RMOTOR, 900);
             msleep(1500);
             moveClaw(CLAW_CLOSED);
             cout << "We got it" << endl;
@@ -593,8 +593,8 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 int main(int argc, char* argv[])
 {
     goToPom(orangeRange(), 0);
-    off(0);
-    off(2);
+    off(LMOTOR);
+    off(RMOTOR);
     return 0;
 }
 #else
@@ -619,6 +619,7 @@ int main(int argc, char* argv[])
     else cout << "We lost everything good and wonderful" << endl;
     alloff();
     disable_servos();
+    cout << "We are done executing" << endl;
     return 0;
 }
 #endif// TESTCASES_RETGREEN
