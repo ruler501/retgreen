@@ -4,12 +4,14 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-//!Simple helper function to calculate the absolute value
+//! Simple helper function to calculate the absolute value
 #define ABS(x) ((x)>0 ? (x) : -1*(x))
+//! Additional helper function to compute the sign of a number
+#define SIGN(x) (x/ABS(x))
 
 //! Defined if we want to print out debug info
-//#define DEBUG_RETGREEN 1
-//#define DEBUG_POMS 1
+#define DEBUG_RETGREEN 1
+#define DEBUG_POMS 1
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
@@ -26,21 +28,24 @@ char* filename;
 #define RBIAS		5
 #define YBARRIER	75
 #define CENTERX		120
-#define MAXLOST		15
+#define MAXLOST		20
+#define MAXCORRECT	10
 
 using namespace cv;
 using namespace std;
 
-#define BASKETPORT 1
-#define CLAWPORT   3
-#define ARMPORT    2
+#define BASKETPORT	1
+#define CLAWPORT	3
+#define ARMPORT		2
+#define LMOTOR		0
+#define RMOTOR		2
 enum { CLAW_OPEN, CLAW_POPEN, CLAW_CLOSED };
 enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, pic=0, lastY=-1;
 const float errorX=5;
-Point LastCenter=(-1, -1);
+Point LastCenter=Point(-1, -1);
 int lastVel[]={0,0,0,0};
 
 
@@ -64,38 +69,38 @@ public:
 
     bool setHueMin(unsigned short hmin)
     {
-        if(hmin < 0 || hmin >= 180) return false;
+        if(hmin >= 180) return false;
         hueMin = hmin;
         return true;
     }
     bool setSatMin(unsigned short smin)
     {
-        if(smin < 0 || smin+satRange > 255) return false;
+        if(smin+satRange > 255) return false;
         satMin = smin;
         return true;
     }
     bool setValMin(unsigned short vmin)
     {
-        if(vmin < 0 || vmin+valRange > 255) return false;
+        if( vmin+valRange > 255) return false;
         valMin = vmin;
         return true;
     }
 
     bool setHueRange(unsigned short hrange)
     {
-        if(hrange < 0 || hrange >= 180) return false;
+        if(hrange >= 180) return false;
         hueRange = hrange;
         return true;
     }
     bool setSatRange(unsigned short srange)
     {
-        if(srange < 0 || srange+satMin > 255) return false;
+        if(srange+satMin > 255) return false;
         satRange = srange;
         return true;
     }
     bool setValRange(unsigned short vrange)
     {
-        if(vrange < 0 || vrange+valMin > 255) return false;
+        if(vrange+valMin > 255) return false;
         valRange = vrange;
         return true;
     }
@@ -210,7 +215,7 @@ char* itoa(int value, char* result, int base) {
     return result;
 }
 
-//! Finds Poms and goes to them based on hsv values
+//! Finds Poms and goes to them based on HSV values
 bool goToPom(colorRange range, void* ourBot)
 {
 #ifdef LOG
@@ -221,7 +226,6 @@ bool goToPom(colorRange range, void* ourBot)
     compression_params.push_back(0);
 #endif// LOG
     if (!cap.isOpened()) return false;
-    //int width=cap.get(CV_CAP_PROP_FRAME_WIDTH), height=cap.get(CV_CAP_PROP_FRAME_HEIGHT);
     vector<vector<int> > orderedContours;
     Mat source, chans, singleChan, tmpMatA, tmpMatB;
     vector< vector<Point> > contours;
@@ -235,7 +239,7 @@ bool goToPom(colorRange range, void* ourBot)
         cap >> source;
 #ifdef LOG
         strcpy(dest, "pics/");
-        pic++;
+        pic++;//! \todo optimize away pic++
         cout << "Pic" << pic << endl;
         itoa(pic,picCurrent,10);
         strcat(dest, picCurrent);
@@ -246,10 +250,11 @@ bool goToPom(colorRange range, void* ourBot)
         cvtColor(source, chans, CV_BGR2HSV);
         split(chans, hueChan);
 //Seperate the channels
+//Channel 1(Hue)
         if(range.getHueMin()+range.getHueRange()<180) inRange(hueChan[0], range.getHueMin(), range.getHueMin()+range.getHueRange(), singleChan);
         else
         {
-            compare(hueChan[0], (range.getHueMin()+range.getHueRange())%180, tmpMatB, CMP_LE);
+            compare(hueChan[0], range.getHueMin()+range.getHueRange()-180, tmpMatB, CMP_LE);
             compare(hueChan[0], range.getHueMin(), tmpMatA, CMP_GE);
             bitwise_or(tmpMatA, tmpMatB, singleChan, Mat());
         }
@@ -339,22 +344,22 @@ bool goToPom(colorRange range, void* ourBot)
         if (orderedContours.size() < 1)
         {
 #ifdef DEBUG_POMS
-            cout << "We lost the pom" << endl;
+            cout << "We lost da dad gum pom" << endl;
 #endif
-			if (ticksLost++ < 5 && (lastVel[LMOTOR] > 0  || lastVel[RMOTOR] > 0))
+			if (ticksLost++ < MAXCORRECT && (lastVel[LMOTOR] != 0  || lastVel[RMOTOR] != 0))
 			{
 				mav(LMOTOR, -lastVel[LMOTOR]*2);
 				mav(RMOTOR, -lastVel[RMOTOR]*2);
 			}
-			else if (ticksLost < MAXLOST+5)
+			else if (ticksLost < MAXCORRECT+MAXLOST)
 			{
-				mav(LMOTOR, -150);
-				mav(RMOTOR,  150);
+				mav(LMOTOR, -200);
+				mav(RMOTOR,  200);
 			}
 			else
 			{
-				mav(LMOTOR,  150);
-				mav(RMOTOR, -150);
+				mav(LMOTOR,  200);
+				mav(RMOTOR, -200);
 			}
 			if(ticksLost > MAXCORRECT+MAXLOST*3) { ticksLost=0; return false; }
             continue;
@@ -365,28 +370,29 @@ bool goToPom(colorRange range, void* ourBot)
         goodContour = 0;
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
-        cout << "Turning l:" << 10*(YBARRIER-center.y) - 2*(CENTERX-center.x) << " r:" << 10*(YBARRIER-center.y) + 2*(CENTERX-center.x) << endl;
 #endif// DEBUG_POMS
 		lastVel[LMOTOR] = tmpInt = 10*(YBARRIER-center.y) - 2*(CENTERX-center.x);
 		lastVel[RMOTOR] = tmpIntB = 10*(YBARRIER-center.y) + 2*(CENTERX-center.x);
 		if(ABS(tmpInt) < 125 || ABS(tmpIntB) < 125)
 		{
-			if(tmpInt > tmpIntB ) { lastVel[LMOTOR]=tmpInt/ABS(tmpInt)*125; lastVel[RMOTOR] = tmpInt/ABS(tmpInt)*125 + tmpInt - tmpIntB; }
-			else { lastVel[LMOTOR]=tmpIntB/ABS(tmpIntB)*125 + tmpIntB - tmpInt lastVel[RMOTOR] = tmpIntB/ABS(tmpIntB)*125); }
+			if(tmpInt > tmpIntB ) { lastVel[LMOTOR]=SIGN(tmpInt)*125; lastVel[RMOTOR] = SIGN(tmpInt)*125 + tmpInt - tmpIntB; }
+			else { lastVel[LMOTOR]=SIGN(tmpIntB)*125 + tmpIntB - tmpInt; lastVel[RMOTOR] = SIGN(tmpIntB)*125; }
 		}
-		mav(lastVel[LMOTOR], lastVel[RMOTOR]);
+#ifdef DEBUG_POMS
+		cout << "Turning l:" << lastVel[LMOTOR] << " r:" << lastVel[RMOTOR] << endl;
+#endif// DEBUG_POMS
+		mav(LMOTOR, lastVel[LMOTOR]);
+		mav(RMOTOR, lastVel[RMOTOR]);
     }
 #ifdef DEBUG_POMS
     cout << "We has da gots em" << endl;
 #endif
-    //mav(LMOTOR,  400);
-    //mav(RMOTOR, -400);
-    //msleep(100);
     off(LMOTOR);
     off(RMOTOR);
     return true;
 }
 
+//! Tries to move orange away from green(Tracks green)
 bool moveOrangeBack(colorRange rangeA, void* ourBot)
 {
     bool retval = goToPom(rangeA, 0);
@@ -413,7 +419,7 @@ bool moveOrangeBack(colorRange rangeA, void* ourBot)
     msleep(1000);
     off(LMOTOR);
     off(RMOTOR);
-    return retval;
+    return true;
 }
 
 //! Attempts to maneuver the green into the claw without orange
@@ -441,18 +447,16 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 //Define misc variables
     vector<vector<int> > orderedContoursA, orderedContoursB;
     Mat source, chans, singleChan, tmpMatA, tmpMatB;
-    vector< vector<Point> > contoursA, contoursB;
+    vector<vector<Point> > contoursA, contoursB;
     vector<Mat> hueChan(3);
     vector<int> tmpCont(3);
     int tmpInt;
     Point2f centerA, centerB;
     float radiusA, radiusB;
     bool seperated=true, success=true;
-    for(int i=0; i<7.5; i++)
+    for(int i=0; i<8; i++)
     {
         success = moveOrangeBack(rangeA,0);
-//Figure out if it worked
-        cap >> source;
 //clear out contours
         orderedContoursA.clear();
         orderedContoursB.clear();
@@ -567,8 +571,8 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 
         if(seperated)
         {
-	    moveClaw(CLAW_OPEN);
             goToPom(rangeA, 0);
+            moveClaw(CLAW_OPEN);
             mav(LMOTOR, 900);
             mav(RMOTOR, 900);
             msleep(1500);
@@ -576,13 +580,6 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
             cout << "We got it" << endl;
             return true;
         }
-        /*else
-        {
-            if(centerA.y < YBARRIER)
-#ifdef DEBUG_RETGREEN
-            cout << "It didn't work. Implement backup" << endl;;
-#endif
-        }*/
     }
     disable_servos();
     cout << "We couldn't find nuttin" << endl;
@@ -611,10 +608,11 @@ int main(int argc, char* argv[])
     enable_servos();
     if(retrieveGreen(greenRange(), orangeRange(), 0))
     {
+    	moveBasket(BASKET_UP);
 		moveArm(ARM_BASKET);
 		moveClaw(CLAW_OPEN);
-		moveClaw(CLAW_POPEN);
 		moveArm(ARM_UP);
+		moveClaw(CLAW_CLOSED);
     }
     else cout << "We lost everything good and wonderful" << endl;
     alloff();
