@@ -15,7 +15,7 @@
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
-//#define LOG 1
+#define LOG 1
 
 #ifdef ONCOMP
 char* filename;
@@ -30,6 +30,7 @@ char* filename;
 #define CENTERX		120
 #define MAXLOST		20
 #define MAXCORRECT	10
+#define MINVEL		125
 
 using namespace cv;
 using namespace std;
@@ -135,13 +136,13 @@ void moveClaw(int position)
     switch (position)
     {
         case CLAW_CLOSED:
-            set_servo_position(CLAWPORT, 930);
+            set_servo_position(CLAWPORT, 1330);
             break;
 		case CLAW_POPEN:
-			set_servo_position(CLAWPORT, 1300);
+			set_servo_position(CLAWPORT, 1710);
             break;
         case CLAW_OPEN:
-            set_servo_position(CLAWPORT, 1600);
+            set_servo_position(CLAWPORT, 2047);
             break;
     }
     msleep(750);
@@ -152,13 +153,13 @@ void moveArm(int position)
     switch (position)
     {
     	case ARM_BASKET:
-			set_servo_position(ARMPORT, 1500);
+			set_servo_position(ARMPORT, 1400);
             break;
         case ARM_UP:
             set_servo_position(ARMPORT, 1000);
             break;
         case ARM_DOWN:
-            set_servo_position(ARMPORT, 0);
+            set_servo_position(ARMPORT, 100);
     }
     msleep(750);
 }
@@ -346,7 +347,7 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
             cout << "We lost da dad gum pom" << endl;
 #endif
-			if (ticksLost++ < MAXCORRECT && (lastVel[LMOTOR] != 0  || lastVel[RMOTOR] != 0))
+			if (ticksLost < MAXCORRECT && (lastVel[LMOTOR] != 0  || lastVel[RMOTOR] != 0))
 			{
 				mav(LMOTOR, -lastVel[LMOTOR]*2);
 				mav(RMOTOR, -lastVel[RMOTOR]*2);
@@ -361,7 +362,7 @@ bool goToPom(colorRange range, void* ourBot)
 				mav(LMOTOR,  200);
 				mav(RMOTOR, -200);
 			}
-			if(ticksLost > MAXCORRECT+MAXLOST*3) { ticksLost=0; return false; }
+			if(ticksLost++ > MAXCORRECT+MAXLOST*3) { ticksLost=0; return false; }
             continue;
         }
         sort(orderedContours.begin(), orderedContours.end(), greaterArea);
@@ -371,12 +372,42 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
-		lastVel[LMOTOR] = tmpInt = 10*(YBARRIER-center.y) - 2*(CENTERX-center.x);
-		lastVel[RMOTOR] = tmpIntB = 10*(YBARRIER-center.y) + 2*(CENTERX-center.x);
-		if(ABS(tmpInt) < 125 || ABS(tmpIntB) < 125)
+		lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 2*(CENTERX-center.x);
+		lastVel[RMOTOR] = 10*(YBARRIER-center.y) + 2*(CENTERX-center.x);
+		tmpInt = (YBARRIER-center.y) != 0 ? SIGN((YBARRIER-center.y)) : -1;
+		/*if (ABS(tmpInt) < MINVEL || ABS(tmpIntB) < MINVEL)
 		{
-			if(tmpInt > tmpIntB ) { lastVel[LMOTOR]=SIGN(tmpInt)*125; lastVel[RMOTOR] = SIGN(tmpInt)*125 + tmpInt - tmpIntB; }
-			else { lastVel[LMOTOR]=SIGN(tmpIntB)*125 + tmpIntB - tmpInt; lastVel[RMOTOR] = SIGN(tmpIntB)*125; }
+			if(ABS(tmpInt) < MINVEL)
+			{
+				if (tmpInt < 0)
+				{
+					lastVel[LMOTOR] = -MINVEL;
+					lastVel[RMOTOR] = tmpIntB+(-MINVEL-tmpInt);
+				}
+				else
+				{
+					lastVel[LMOTOR] = MINVEL;
+					lastVel[RMOTOR] = tmpIntB+(MINVEL-tmpInt);
+				}
+			}
+			else
+			{
+				if (tmpIntB < 0)
+				{
+					lastVel[LMOTOR] = tmpInt+(-MINVEL-tmpIntB);
+					lastVel[RMOTOR] = -MINVEL;
+				}
+				else
+				{
+					lastVel[LMOTOR] = tmpInt+(MINVEL-tmpIntB);
+					lastVel[RMOTOR] = MINVEL;
+				}
+			}
+		}*/
+		while (ABS(lastVel[LMOTOR]) < MINVEL || ABS(lastVel[RMOTOR]) < MINVEL)
+		{
+			lastVel[LMOTOR] += tmpInt;
+			lastVel[RMOTOR] += tmpInt;
 		}
 #ifdef DEBUG_POMS
 		cout << "Turning l:" << lastVel[LMOTOR] << " r:" << lastVel[RMOTOR] << endl;
