@@ -30,7 +30,7 @@ char* filename;
 #define CENTERX		120
 #define MAXLOST		20
 #define MAXCORRECT	10
-#define MINVEL		125
+#define MINVEL		200
 
 using namespace cv;
 using namespace std;
@@ -45,7 +45,7 @@ enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, pic=0, lastY=-1;
-const float errorX=5;
+const float errorX=5, errorSep=0;
 Point LastCenter=Point(-1, -1);
 int lastVel[]={0,0,0,0};
 
@@ -110,12 +110,12 @@ public:
 colorRange orangeRange()
 {
     colorRange orange;
-    orange.setHueMin(6);
-    orange.setHueRange(8);
-    orange.setSatMin(170);
-    orange.setSatRange(75);
-    orange.setValMin(145);
-    orange.setValRange(75);
+    orange.setHueMin(0);
+    orange.setHueRange(14);
+    orange.setSatMin(105);
+    orange.setSatRange(115);
+    orange.setValMin(140);
+    orange.setValRange(95);
     return orange;
 }
 
@@ -375,35 +375,6 @@ bool goToPom(colorRange range, void* ourBot)
 		lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 2*(CENTERX-center.x);
 		lastVel[RMOTOR] = 10*(YBARRIER-center.y) + 2*(CENTERX-center.x);
 		tmpInt = (YBARRIER-center.y) != 0 ? SIGN((YBARRIER-center.y)) : -1;
-		/*if (ABS(tmpInt) < MINVEL || ABS(tmpIntB) < MINVEL)
-		{
-			if(ABS(tmpInt) < MINVEL)
-			{
-				if (tmpInt < 0)
-				{
-					lastVel[LMOTOR] = -MINVEL;
-					lastVel[RMOTOR] = tmpIntB+(-MINVEL-tmpInt);
-				}
-				else
-				{
-					lastVel[LMOTOR] = MINVEL;
-					lastVel[RMOTOR] = tmpIntB+(MINVEL-tmpInt);
-				}
-			}
-			else
-			{
-				if (tmpIntB < 0)
-				{
-					lastVel[LMOTOR] = tmpInt+(-MINVEL-tmpIntB);
-					lastVel[RMOTOR] = -MINVEL;
-				}
-				else
-				{
-					lastVel[LMOTOR] = tmpInt+(MINVEL-tmpIntB);
-					lastVel[RMOTOR] = MINVEL;
-				}
-			}
-		}*/
 		while (ABS(lastVel[LMOTOR]) < MINVEL || ABS(lastVel[RMOTOR]) < MINVEL)
 		{
 			lastVel[LMOTOR] += tmpInt;
@@ -416,7 +387,7 @@ bool goToPom(colorRange range, void* ourBot)
 		mav(RMOTOR, lastVel[RMOTOR]);
     }
 #ifdef DEBUG_POMS
-    cout << "We has da gots em" << endl;
+    cout << "We has da gone ta it" << endl;
 #endif
     off(LMOTOR);
     off(RMOTOR);
@@ -445,9 +416,9 @@ bool moveOrangeBack(colorRange rangeA, void* ourBot)
     mav(LMOTOR, -500);
     mav(RMOTOR,  500);
     msleep(750);
-    mav(LMOTOR, -900);
-    mav(RMOTOR, -900);
-    msleep(1000);
+    mav(LMOTOR, -1000);
+    mav(RMOTOR, -1000);
+    msleep(1250);
     off(LMOTOR);
     off(RMOTOR);
     return true;
@@ -463,7 +434,6 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 #ifdef LOG
     Mat drawinga;
     char dest[150], picCurrent[4];
-//    int pic=0;
     vector<int> compression_params;
     compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
     compression_params.push_back(0);
@@ -548,9 +518,6 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         sort(orderedContoursA.begin(), orderedContoursA.end(), greaterArea);
 //Find the min enclosing circle for center
         minEnclosingCircle((Mat)contoursA[orderedContoursA[0][2]], centerA, radiusA);
-#ifdef DEBUG_RETGREEN
-        cout << "Good Center x:" << centerA.x << " y:" << centerA.y << " With radius " << radiusA << " and area " << orderedContoursA[0][0] << endl;
-#endif
 //Find the contours for what we want to avoid next
         if(rangeB.getHueMin()+rangeB.getHueRange()<180) inRange(hueChan[0], rangeB.getHueMin(), rangeB.getHueMin()+rangeB.getHueRange(), singleChan);
         else
@@ -583,21 +550,26 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
             tmpCont[2]=j;
             orderedContoursB.push_back(tmpCont);
         }
-    //       if (orderedContoursB.size() > 0) sort(orderedContoursA.begin(), orderedContoursB.end(), greaterArea);
 
 #ifdef DEBUG_RETGREEN
         cout << "We found it to start" << endl;
 #endif
 
-
-        for(unsigned int j=0; j < orderedContoursB.size() && seperated; j++)
+		cout << "Good Center x:" << centerA.x << " y:" << centerA.y << " With radius " << radiusA << " and Area " << orderedContoursA[0][0] << endl;
+        for(unsigned int j=0; j < orderedContoursB.size(); j++)
         {
             minEnclosingCircle((Mat)contoursB[orderedContoursB[j][2]], centerB, radiusB);
-            seperated = ((centerA.x-centerB.x)*(centerA.x-centerB.x) + (centerA.y-centerB.y)*(centerA.y-centerB.y) >= (25+2*radiusB)*(25+2*radiusB)) || ((centerA.y-5 <= centerB.y) && (ABS(centerA.x-centerB.x) <= 15+2*radiusB));
-#ifdef DEBUG_RETGREEN
-            cout << "Bad Center x:" << centerB.x << " y:" << centerB.y << " With radius " << radiusB << " and Area " << orderedContoursB[j][0] << endl;
-            if(!seperated) cout << "It is too close to the orange" << endl;
-#endif
+            if(((centerA.x-centerB.x)*(centerA.x-centerB.x) + (centerA.y-centerB.y)*(centerA.y-centerB.y) >= (errorSep+radiusB)*(errorSep+radiusB)))// || ((centerA.y-radiusA <= centerB.y) && (ABS(centerA.x-centerB.x) <= 15+2*radiusB)))
+            {
+            	seperated=true;
+            }
+            else
+            {
+				cout << "Bad Center x:" << centerB.x << " y:" << centerB.y << " With radius " << radiusB << " and Area " << orderedContoursB[j][0] << endl;
+				cout << "It is too close to the orange" << endl;
+				seperated=false;
+				break;
+            }
         }
 
         if(seperated)
@@ -606,7 +578,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
             moveClaw(CLAW_OPEN);
             mav(LMOTOR, 900);
             mav(RMOTOR, 900);
-            msleep(1500);
+            msleep(600);
             moveClaw(CLAW_CLOSED);
             cout << "We got it" << endl;
             return true;
@@ -646,7 +618,7 @@ int main(int argc, char* argv[])
 		moveClaw(CLAW_CLOSED);
     }
     else cout << "We lost everything good and wonderful" << endl;
-    alloff();
+    ao();
     disable_servos();
     cout << "We are done executing" << endl;
     return 0;
