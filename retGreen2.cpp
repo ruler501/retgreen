@@ -123,7 +123,7 @@ colorRange greenRange()
 {
     colorRange green;
     green.setHueMin(25);
-    green.setHueRange(80);
+    green.setHueRange(50);
     green.setSatMin(120);
     green.setSatRange(135);
     green.setValMin(76);
@@ -561,7 +561,14 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
             minEnclosingCircle((Mat)contoursB[orderedContoursB[j][2]], centerB, radiusB);
             if(((centerA.x-centerB.x)*(centerA.x-centerB.x) + (centerA.y-centerB.y)*(centerA.y-centerB.y) >= (errorSep+radiusB)*(errorSep+radiusB)))// || ((centerA.y-radiusA <= centerB.y) && (ABS(centerA.x-centerB.x) <= 15+2*radiusB)))
             {
-            	seperated=true;
+            	goToPom(rangeA, 0);
+				moveClaw(CLAW_OPEN);
+				mav(LMOTOR, 900);
+				mav(RMOTOR, 900);
+				msleep(600);
+				moveClaw(CLAW_CLOSED);
+				cout << "We got it" << endl;
+				return true;
             }
             else
             {
@@ -570,18 +577,6 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 				seperated=false;
 				break;
             }
-        }
-
-        if(seperated)
-        {
-            goToPom(rangeA, 0);
-            moveClaw(CLAW_OPEN);
-            mav(LMOTOR, 900);
-            mav(RMOTOR, 900);
-            msleep(600);
-            moveClaw(CLAW_CLOSED);
-            cout << "We got it" << endl;
-            return true;
         }
     }
     disable_servos();
