@@ -30,7 +30,7 @@ char* filename;
 #define CENTERX		120
 #define MAXLOST		20
 #define MAXCORRECT	10
-#define MINVEL		200
+#define MINVEL		250
 
 using namespace cv;
 using namespace std;
@@ -419,6 +419,9 @@ bool moveOrangeBack(colorRange rangeA, void* ourBot)
     mav(LMOTOR, -1000);
     mav(RMOTOR, -1000);
     msleep(1250);
+    mav(LMOTOR,  900);
+    mav(RMOTOR, -900);
+    msleep(100);
     off(LMOTOR);
     off(RMOTOR);
     return true;
