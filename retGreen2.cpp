@@ -45,7 +45,7 @@ enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, pic=0, lastY=-1;
-const float errorX=5, errorSep=0;
+const float errorX=5, errorSep=5;
 Point LastCenter=Point(-1, -1);
 int lastVel[]={0,0,0,0};
 
@@ -565,7 +565,9 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 				moveClaw(CLAW_OPEN);
 				mav(LMOTOR, 900);
 				mav(RMOTOR, 900);
-				msleep(600);
+				msleep(750);
+				off(LMOTOR);
+				off(RMOTOR);
 				moveClaw(CLAW_CLOSED);
 				cout << "We got it" << endl;
 				return true;
