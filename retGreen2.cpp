@@ -494,7 +494,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
     vector<int> tmpCont(3);
     int tmpInt;
     Point2f centerA, centerB;
-    float radiusA, radiusB;true;
+    float radiusA, radiusB;
     for(int i=0; i<8; i++)
     {
         if (!moveOrangeBack(rangeA,0)) return false;
