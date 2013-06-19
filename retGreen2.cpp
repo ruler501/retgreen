@@ -124,8 +124,8 @@ colorRange orangeRange()
 colorRange greenRange()
 {
     colorRange green;
-    green.setHueMin(25);
-    green.setHueRange(50);
+    green.setHueMin(40);
+    green.setHueRange(35);
     green.setSatMin(120);
     green.setSatRange(135);
     green.setValMin(76);
