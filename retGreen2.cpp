@@ -580,7 +580,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         inRange(hueChan[2], rangeB.getValMin(), rangeB.getValMin()+rangeB.getValRange(), tmpMatA);
         bitwise_and(singleChan, tmpMatA, singleChan, Mat());
 #ifdef LOG
-        strcpy(dest, "pics/"););
+        strcpy(dest, "pics/");
         strcat(dest, picCurrent);
         strcat(dest, "B.png");
         imwrite(dest, singleChan, compression_params);
