@@ -14,6 +14,8 @@
 #define DEBUG_POMS 1
 //! Define for Satan
 //#define SATAN 1
+//! Define for Anti-ADD meds
+//#define RITALIN 1
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
@@ -48,9 +50,10 @@ enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, pic=0, lastY=-1;
 const float errorX=5, errorSep=5;
-Point LastCenter=Point(-1, -1);
 int lastVel[]={0,0,0,0};
-
+#ifdef RITALIN
+Point LastCenter=Point(-1, -1);
+#endif
 
 class colorRange
 {
@@ -218,6 +221,11 @@ char* itoa(int value, char* result, int base) {
     return result;
 }
 
+bool findCenter(colorRange range, float &radius, float &center)
+{
+	return true;
+}
+
 //! Finds Poms and goes to them based on HSV values
 bool goToPom(colorRange range, void* ourBot)
 {
@@ -234,7 +242,7 @@ bool goToPom(colorRange range, void* ourBot)
     vector< vector<Point> > contours;
     vector<Mat> hueChan(3);
     vector<int> tmpCont(3);
-    int goodContour=-1, tmpInt, tmpIntB;
+    int tmpInt, tmpIntB;
     Point2f center;
     float radius;
     for(int i=0; i < 10; i++)
@@ -291,7 +299,6 @@ bool goToPom(colorRange range, void* ourBot)
         sort(orderedContours.begin(), orderedContours.end(), greaterArea);
 //Find radius and center
         minEnclosingCircle((Mat)contours[orderedContours[0][2]], center, radius);
-        goodContour = 0;
         break;
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
@@ -373,7 +380,6 @@ bool goToPom(colorRange range, void* ourBot)
         sort(orderedContours.begin(), orderedContours.end(), greaterArea);
 //Find radius and center
         minEnclosingCircle((Mat)contours[orderedContours[0][2]], center, radius);
-        goodContour = 0;
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
