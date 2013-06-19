@@ -48,12 +48,19 @@ enum { CLAW_OPEN, CLAW_POPEN, CLAW_CLOSED };
 enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
-int ticksLost=0, pic=0, lastY=-1;
+int ticksLost=0, lastY=-1;
 const float errorX=5, errorSep=5;
-int lastVel[]={0,0,0,0};
-#ifdef RITALIN
 Point LastCenter=Point(-1, -1);
-#endif
+int lastVel[]={0,0,0,0};
+#ifdef LOG
+Mat drawinga;
+int pic=0;
+char dest[150], picCurrent[4];
+vector<int> compression_params;
+compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+compression_params.push_back(0);
+#endif// LOG
+
 
 class colorRange
 {
@@ -221,21 +228,9 @@ char* itoa(int value, char* result, int base) {
     return result;
 }
 
-bool findCenter(colorRange range, float &radius, float &center)
-{
-	return true;
-}
-
 //! Finds Poms and goes to them based on HSV values
 bool goToPom(colorRange range, void* ourBot)
 {
-#ifdef LOG
-    Mat drawinga;
-    char dest[150], picCurrent[4];
-    vector<int> compression_params;
-    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    compression_params.push_back(0);
-#endif// LOG
     if (!cap.isOpened()) return false;
     vector<vector<int> > orderedContours;
     Mat source, chans, singleChan, tmpMatA, tmpMatB;
@@ -250,8 +245,7 @@ bool goToPom(colorRange range, void* ourBot)
         cap >> source;
 #ifdef LOG
         strcpy(dest, "pics/");
-        pic++;//! \todo optimize away pic++
-        cout << "Pic" << pic << endl;
+        cout << "Pic" << ++pic << endl;
         itoa(pic,picCurrent,10);
         strcat(dest, picCurrent);
         strcat(dest, ".png");
@@ -278,9 +272,7 @@ bool goToPom(colorRange range, void* ourBot)
         bitwise_and(singleChan, tmpMatA, singleChan, Mat());
 #ifdef LOG
         strcpy(dest, "pics/");
-        pic++;
         cout << "Pic" << pic << endl;
-        itoa(pic,picCurrent,10);
         strcat(dest, picCurrent);
         strcat(dest, "A.png");
         imwrite(dest, singleChan, compression_params);
@@ -299,10 +291,10 @@ bool goToPom(colorRange range, void* ourBot)
         sort(orderedContours.begin(), orderedContours.end(), greaterArea);
 //Find radius and center
         minEnclosingCircle((Mat)contours[orderedContours[0][2]], center, radius);
-        break;
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
+        break;
     }
     while (ABS(center.x - CENTERX) > errorX || center.y < YBARRIER)
     {
@@ -313,8 +305,7 @@ bool goToPom(colorRange range, void* ourBot)
         cap >> source;
 #ifdef LOG
         strcpy(dest, "pics/");
-        pic++;
-        cout << "Pic" << pic << endl;
+        cout << "Pic" << ++pic << endl;
         itoa(pic,picCurrent,10);
         strcat(dest, picCurrent);
         strcat(dest, ".png");
@@ -445,13 +436,6 @@ bool moveOrangeBack(colorRange rangeA, void* ourBot)
  */
 bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 {
-#ifdef LOG
-    Mat drawinga;
-    char dest[150], picCurrent[4];
-    vector<int> compression_params;
-    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    compression_params.push_back(0);
-#endif// LOG
 #ifdef ONCOMP
     Mat drawing;
     int width=160, height=120;
@@ -467,11 +451,10 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
     vector<int> tmpCont(3);
     int tmpInt;
     Point2f centerA, centerB;
-    float radiusA, radiusB;
-    bool seperated=true, success=true;
+    float radiusA, radiusB;true;
     for(int i=0; i<8; i++)
     {
-        success = moveOrangeBack(rangeA,0);
+        if (!moveOrangeBack(rangeA,0)) return false;
 //clear out contours
         orderedContoursA.clear();
         orderedContoursB.clear();
@@ -479,8 +462,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         cap >> source;
 #ifdef LOG
         strcpy(dest, "pics/");
-        pic++;
-        cout << "Pic" << pic << endl;
+        cout << "Pic" << ++pic << endl;
         itoa(pic,picCurrent,10);
         strcat(dest, picCurrent);
         strcat(dest, ".png");
@@ -507,7 +489,6 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         bitwise_and(singleChan, tmpMatA, singleChan, Mat());
 #ifdef LOG
         strcpy(dest, "pics/");
-        itoa(pic,picCurrent,10);
         strcat(dest, picCurrent);
         strcat(dest, "A.png");
         imwrite(dest, singleChan, compression_params);
@@ -548,8 +529,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         inRange(hueChan[2], rangeB.getValMin(), rangeB.getValMin()+rangeB.getValRange(), tmpMatA);
         bitwise_and(singleChan, tmpMatA, singleChan, Mat());
 #ifdef LOG
-        strcpy(dest, "pics/");
-        itoa(pic,picCurrent,10);
+        strcpy(dest, "pics/"););
         strcat(dest, picCurrent);
         strcat(dest, "B.png");
         imwrite(dest, singleChan, compression_params);
@@ -590,7 +570,6 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
             {
 				cout << "Bad Center x:" << centerB.x << " y:" << centerB.y << " With radius " << radiusB << " and Area " << orderedContoursB[j][0] << endl;
 				cout << "It is too close to the orange" << endl;
-				seperated=false;
 				break;
             }
         }
