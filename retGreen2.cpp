@@ -408,7 +408,7 @@ bool goToPom(colorRange range, void* ourBot)
 //Find radius and center
 #ifndef RITALIN
         minEnclosingCircle((Mat)contours[orderedContours[0][2]], center, radius);
-#endif
+#endif// !RITALIN
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
@@ -464,6 +464,10 @@ bool moveOrangeBack(colorRange rangeA, void* ourBot)
     msleep(100);
     off(LMOTOR);
     off(RMOTOR);
+#ifdef RITALIN
+	//invalidate the sensor after we screw with it
+	lastCenter=Point(-1, -1);
+#endif
     return true;
 }
 
@@ -541,16 +545,24 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
             tmpCont[2]=j;
             orderedContoursA.push_back(tmpCont);
         }
+        sort(orderedContoursA.begin(), orderedContoursA.end(), greaterArea);
+#ifdef RITALIN
+		tmpInt=checkContours(contoursA, orderedContoursA);
+        if(orderedContoursA.size()<1 || tmpInt < 0)
+#else
         if (orderedContoursA.size() < 1) //We couldn't find anything to look for
+#endif
         {
 #ifdef DEBUG_RETGREEN
             cout << "We were unable find what we wanted" << endl;
 #endif
             return false;
         }
-        sort(orderedContoursA.begin(), orderedContoursA.end(), greaterArea);
-//Find the min enclosing circle for center
-        minEnclosingCircle((Mat)contoursA[orderedContoursA[0][2]], centerA, radiusA);
+#ifdef RITALIN
+	minEnclosingCircle((Mat)contoursA[orderedContoursA[tmpInt][2]], centerA, radiusA);
+#else
+	minEnclosingCircle((Mat)contoursA[orderedContoursA[0][2]], centerA, radiusA);
+#endif
 //Find the contours for what we want to avoid next
         if(rangeB.getHueMin()+rangeB.getHueRange()<180) inRange(hueChan[0], rangeB.getHueMin(), rangeB.getHueMin()+rangeB.getHueRange(), singleChan);
         else
