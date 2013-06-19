@@ -1,0 +1,15 @@
+# depslib dependency file v1.0
+1363120854 source:/home/devon/OpenCVTests/PomTest.cpp
+	<iostream>
+	<stdio.h>
+	<stdlib.h>
+	"opencv2/highgui/highgui.hpp"
+	"opencv2/imgproc/imgproc.hpp"
+
+1361206329 source:/media/Share/Botball/PomFollower/goToPom.cpp
+	<iostream>
+	<stdio.h>
+	<stdlib.h>
+	"opencv2/highgui/highgui.hpp"
+	"opencv2/imgproc/imgproc.hpp"
+

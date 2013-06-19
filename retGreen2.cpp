@@ -10,14 +10,14 @@
 #define SIGN(x) (x/ABS(x))
 
 //! Defined if we want to print out debug info
-//#define DEBUG_RETGREEN 1
-//#define DEBUG_POMS 1
+#define DEBUG_RETGREEN 1
+#define DEBUG_POMS 1
 //! Define for Satan
-#define SATAN 1
+//#define SATAN 1
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
-//#define LOG 1
+#define LOG 1
 
 #ifdef ONCOMP
 char* filename;
@@ -28,8 +28,8 @@ char* filename;
 #endif// ONCOMP
 
 #define RBIAS		5
-#define YBARRIER	75
-#define CENTERX		120
+#define YBARRIER	95
+#define CENTERX		115
 #define MAXLOST		20
 #define MAXCORRECT	10
 #define MINVEL		250
