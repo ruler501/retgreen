@@ -378,7 +378,6 @@ bool goToPom(colorRange range, void* ourBot)
 		sort(orderedContours.begin(), orderedContours.end(), greaterArea);
 #ifdef RITALIN
 		tmpInt = checkContours(contours, orderedContours);
-		minEnclosingCircle((Mat)contours[orderedContours[tmpInt][2]], center, radius);
 		if (orderedContours.size() < 1 || tmpInt >= 0)
 #else
 		if (orderedContours.size() < 1)
@@ -389,8 +388,8 @@ bool goToPom(colorRange range, void* ourBot)
 #endif
 			if (ticksLost < MAXCORRECT && (lastVel[LMOTOR] != 0  || lastVel[RMOTOR] != 0))
 			{
-				mav(LMOTOR, -lastVel[LMOTOR]*2);
-				mav(RMOTOR, -lastVel[RMOTOR]*2);
+				mav(LMOTOR, -2*lastVel[LMOTOR]);
+				mav(RMOTOR, -2*lastVel[RMOTOR]);
 			}
 			else if (ticksLost < MAXCORRECT+MAXLOST)
 			{
@@ -406,9 +405,11 @@ bool goToPom(colorRange range, void* ourBot)
             continue;
         }
 //Find radius and center
-#ifndef RITALIN
+#ifdef RITALIN
+		minEnclosingCircle((Mat)contours[orderedContours[tmpInt][2]], center, radius);
+#else
         minEnclosingCircle((Mat)contours[orderedContours[0][2]], center, radius);
-#endif// !RITALIN
+#endif// RITALIN
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
