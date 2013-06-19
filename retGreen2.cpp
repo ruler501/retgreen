@@ -28,8 +28,8 @@ char* filename;
 #endif// ONCOMP
 
 #define RBIAS		5
-#define YBARRIER	95
-#define CENTERX		115
+#define YBARRIER	115
+#define CENTERX		95
 #define MAXLOST		20
 #define MAXCORRECT	10
 #define MINVEL		250
