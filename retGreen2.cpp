@@ -50,7 +50,6 @@ enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, lastY=-1;
 const float errorX=5, errorSep=5;
-Point LastCenter=Point(-1, -1);
 int lastVel[]={0,0,0,0};
 #ifdef LOG
 Mat drawinga;
@@ -60,6 +59,9 @@ vector<int> compression_params;
 compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
 compression_params.push_back(0);
 #endif// LOG
+#ifdef RITALIN
+Point lastCenter=Point(-1, -1);
+#endif// RITALIN
 
 
 class colorRange
@@ -228,6 +230,34 @@ char* itoa(int value, char* result, int base) {
     return result;
 }
 
+#ifdef RITALIN
+int checkContours(const vector< vector<Point> > &contours, const vector<vector<int> > &orderedContours)
+{
+	int good=-1;
+	Point2f center;
+	float radius;
+	//Find radius and center
+	if(lastCenter.x > 0 || lastCenter.y > 0)
+	{
+		for(int i=0; i!=orderedContours.size(); i++)
+		{
+			minEnclosingCircle((Mat)contours[orderedContours[i][2]], center, radius);
+			if( (lastCenter.x-center.x)*(lastCenter.x-center.x)+(lastCenter.y-center.y)*(lastCenter.y-center.y) > 225)
+			{
+				good=i;
+				break;
+			}
+		}
+		if(good<0) return -1;
+	}
+	else good=0;
+	minEnclosingCircle((Mat)contours[orderedContours[good][2]], center, radius);
+	lastCenter.x = center.x;
+	lastCenter.y = center.y;
+	return good;
+}
+#endif// RITALIN
+
 //! Finds Poms and goes to them based on HSV values
 bool goToPom(colorRange range, void* ourBot)
 {
@@ -345,7 +375,14 @@ bool goToPom(colorRange range, void* ourBot)
             tmpCont[2]=i;
             orderedContours.push_back(tmpCont);
         }
-        if (orderedContours.size() < 1)
+		sort(orderedContours.begin(), orderedContours.end(), greaterArea);
+#ifdef RITALIN
+		tmpInt = checkContours(contours, orderedContours);
+		minEnclosingCircle((Mat)contours[orderedContours[tmpInt][2]], center, radius);
+		if (orderedContours.size() < 1 || tmpInt >= 0)
+#else
+		if (orderedContours.size() < 1)
+#endif
         {
 #ifdef DEBUG_POMS
             cout << "We lost da dad gum pom" << endl;
@@ -368,9 +405,10 @@ bool goToPom(colorRange range, void* ourBot)
 			if(ticksLost++ > MAXCORRECT+MAXLOST*3) { ticksLost=0; return false; }
             continue;
         }
-        sort(orderedContours.begin(), orderedContours.end(), greaterArea);
 //Find radius and center
+#ifndef RITALIN
         minEnclosingCircle((Mat)contours[orderedContours[0][2]], center, radius);
+#endif
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
