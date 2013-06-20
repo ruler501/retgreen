@@ -50,7 +50,8 @@ enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, lastY=-1;
 const float errorX=5, errorSep=5;
-int lastVel[]={0,0,0,0};
+unsigned short lastVel[]={0,0,0,0};
+unsigned short lastPos[]={0,0,0,0};
 #ifdef LOG
 Mat drawinga;
 int pic=0;
@@ -62,7 +63,6 @@ compression_params.push_back(0);
 #ifdef RITALIN
 Point lastCenter=Point(-1, -1);
 #endif// RITALIN
-
 
 class colorRange
 {
@@ -145,21 +145,33 @@ colorRange greenRange()
     return green;
 }
 
+void controlledServo(unsigned char port, unsigned short position, unsigned short milliseconds)
+{
+	unsigned short intervals=milliseconds/100, delta=(position - lastPos[port])/intervals;
+	for(int i=0; i<intervals; i++)
+	{
+		lastPos[port] += delta;
+		set_servo_position(port, lastPos[port]);
+		msleep(95);
+	}
+	set_servo_position(port, position);
+	lastPos[port] = position;
+}
+
 void moveClaw(int position)
 {
     switch (position)
     {
         case CLAW_CLOSED:
-            set_servo_position(CLAWPORT, 1330);
+            controlledServo(CLAWPORT, 1330, 500);
             break;
 		case CLAW_POPEN:
-			set_servo_position(CLAWPORT, 1710);
+			controlledServo(CLAWPORT, 1710, 500);
             break;
         case CLAW_OPEN:
-            set_servo_position(CLAWPORT, 2047);
+            controlledServo(CLAWPORT, 2047, 500);
             break;
     }
-    msleep(750);
 }
 
 void moveArm(int position)
@@ -167,15 +179,14 @@ void moveArm(int position)
     switch (position)
     {
     	case ARM_BASKET:
-			set_servo_position(ARMPORT, 1400);
+			controlledServo(ARMPORT, 1400, 1000);
             break;
         case ARM_UP:
-            set_servo_position(ARMPORT, 1000);
+            controlledServo(ARMPORT, 1000, 1000);
             break;
         case ARM_DOWN:
-            set_servo_position(ARMPORT, 100);
+            controlledServo(ARMPORT, 100, 1000);
     }
-    msleep(750);
 }
 
 void moveBasket(int position)
@@ -183,16 +194,15 @@ void moveBasket(int position)
     switch (position)
     {
         case BASKET_UP:
-            set_servo_position(BASKETPORT, 920);
+            controlledServo(BASKETPORT, 920, 600);
             break;
         case BASKET_DOWN:
-            set_servo_position(BASKETPORT, 500);
+            controlledServo(BASKETPORT, 500, 600);
             break;
 		case BASKET_DUMP:
-			set_servo_position(BASKETPORT, 1250);
+			controlledServo(BASKETPORT, 1250, 600);
 			break;
     }
-    msleep(750);
 }
 
 //! Evaluates my custom data type to see whether the first's area is larger than the second's
