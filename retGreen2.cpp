@@ -10,12 +10,12 @@
 #define SIGN(x) (x/ABS(x))
 
 //! Defined if we want to print out debug info
-#define DEBUG_RETGREEN 1
-#define DEBUG_POMS 1
+//#define DEBUG_RETGREEN 1
+//#define DEBUG_POMS 1
 //! Define for Satan
 //#define SATAN 1
 //! Define for Anti-ADD meds
-#define RITALIN 1
+//#define RITALIN 1
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
@@ -242,7 +242,7 @@ int checkContours(const vector< vector<Point> > &contours, const vector<vector<i
 		for(int i=0; i!=orderedContours.size(); i++)
 		{
 			minEnclosingCircle((Mat)contours[orderedContours[i][2]], center, radius);
-			if( (lastCenter.x-center.x)*(lastCenter.x-center.x)+(lastCenter.y-center.y)*(lastCenter.y-center.y) > 225)
+			if( (lastCenter.x-center.x)*(lastCenter.x-center.x)+(lastCenter.y-center.y)*(lastCenter.y-center.y) > 625)
 			{
 				good=i;
 				break;
@@ -499,7 +499,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
     float radiusA, radiusB;
     for(int i=0; i<8; i++)
     {
-        if (!moveOrangeBack(rangeA,0)) return false;
+        moveOrangeBack(rangeA,0);//) return false;
 //clear out contours
         orderedContoursA.clear();
         orderedContoursB.clear();
