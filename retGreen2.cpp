@@ -243,7 +243,7 @@ char* itoa(int value, char* result, int base) {
 #ifdef RITALIN
 int checkContours(const vector< vector<Point> > &contours, const vector<vector<int> > &orderedContours)
 {
-	int good=-1;
+	int good=0;
 	Point2f center;
 	float radius;
 	//Find radius and center
@@ -258,9 +258,7 @@ int checkContours(const vector< vector<Point> > &contours, const vector<vector<i
 				break;
 			}
 		}
-		if(good<0) return -1;
 	}
-	else good=0;
 	minEnclosingCircle((Mat)contours[orderedContours[good][2]], center, radius);
 	lastCenter.x = center.x;
 	lastCenter.y = center.y;
