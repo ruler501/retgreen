@@ -30,8 +30,8 @@ char* filename;
 #endif// ONCOMP
 
 #define RBIAS		5
-#define YBARRIER	105
-#define CENTERX		97
+#define YBARRIER	100
+#define CENTERX		100
 #define MAXLOST		20
 #define MAXCORRECT	10
 #define MINVEL		250
@@ -49,7 +49,7 @@ enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, lastY=-1;
-const float errorX=7, errorSep=15;
+const float errorX=10+, errorSep=15;
 short lastVel[]={0,0,0,0};
 unsigned short lastPos[]={0,0,0,0};
 #ifdef LOG
@@ -391,6 +391,9 @@ bool goToPom(colorRange range, void* ourBot)
 		if (orderedContours.size() < 1 || tmpInt < 0)
 		{
 			lastCenter=Point(-1,-1);
+#ifdef DEBUG_POMS
+			cout << ((tmpInt < 0) ? "Ridalin failed" : "Can't see nuttin") << endl;
+#endif
 #else
 		if (orderedContours.size() < 1)
 		{
@@ -425,8 +428,8 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
-		lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 2*(CENTERX-center.x);
-		lastVel[RMOTOR] = 10*(YBARRIER-center.y) + 2*(CENTERX-center.x);
+		lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 3*(CENTERX-center.x);
+		lastVel[RMOTOR] = 10*(YBARRIER-center.y) + 3*(CENTERX-center.x);
 		tmpInt = (YBARRIER-center.y) != 0 ? SIGN((YBARRIER-center.y)) : -1;
 		while (ABS(lastVel[LMOTOR]) < MINVEL || ABS(lastVel[RMOTOR]) < MINVEL)
 		{
@@ -620,7 +623,13 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
             minEnclosingCircle((Mat)contoursB[orderedContoursB[j][2]], centerB, radiusB);
             if(((centerA.x-centerB.x)*(centerA.x-centerB.x) + (centerA.y-centerB.y)*(centerA.y-centerB.y) >= (errorSep+radiusB)*(errorSep+radiusB)))// || ((centerA.y-radiusA <= centerB.y) && (ABS(centerA.x-centerB.x) <= 15+2*radiusB)))
             {
+            	moveClaw(CLAW_CLOSED);
             	goToPom(rangeA, 0);
+            	mav(LMOTOR, -900);
+            	mav(RMOTOR, -900);
+            	msleep(200);
+            	off(LMOTOR);
+				off(RMOTOR);
 				moveClaw(CLAW_OPEN);
 				mav(LMOTOR, 900);
 				mav(RMOTOR, 900);
