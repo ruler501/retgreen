@@ -30,11 +30,11 @@ char* filename;
 #endif// ONCOMP
 
 #define RBIAS		5
-#define YBARRIER	100
+#define YBARRIER	95
 #define CENTERX		100
 #define MAXLOST		20
 #define MAXCORRECT	10
-#define MINVEL		250
+#define MINVEL		200
 
 using namespace cv;
 using namespace std;
@@ -49,7 +49,7 @@ enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, lastY=-1;
-const float errorX=10+, errorSep=15;
+const float errorX=10, errorSep=25;
 short lastVel[]={0,0,0,0};
 unsigned short lastPos[]={0,0,0,0};
 #ifdef LOG
@@ -252,7 +252,7 @@ int checkContours(const vector< vector<Point> > &contours, const vector<vector<i
 		for(int i=0; i!=orderedContours.size(); i++)
 		{
 			minEnclosingCircle((Mat)contours[orderedContours[i][2]], center, radius);
-			if( (lastCenter.x-center.x)*(lastCenter.x-center.x)+(lastCenter.y-center.y)*(lastCenter.y-center.y) < ((lastVel[0]*lastVel[0])+lastVel[1]*lastVel[1])/6400)
+			if( (lastCenter.x-center.x)*(lastCenter.x-center.x)+(lastCenter.y-center.y)*(lastCenter.y-center.y) < ((lastVel[0]*lastVel[0])+lastVel[1]*lastVel[1])/3500)
 			{
 				good=i;
 				break;
@@ -277,7 +277,7 @@ bool goToPom(colorRange range, void* ourBot)
     vector< vector<Point> > contours;
     vector<Mat> hueChan(3);
     vector<int> tmpCont(3);
-    int tmpInt, tmpIntB;
+    int tmpInt;
     Point2f center;
     float radius;
     for(int i=0; i < 10; i++)
@@ -428,8 +428,8 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
-		lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 3*(CENTERX-center.x);
-		lastVel[RMOTOR] = 10*(YBARRIER-center.y) + 3*(CENTERX-center.x);
+		lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 4*(CENTERX-center.x);
+		lastVel[RMOTOR] = 10*(YBARRIER-center.y) + 4*(CENTERX-center.x);
 		tmpInt = (YBARRIER-center.y) != 0 ? SIGN((YBARRIER-center.y)) : -1;
 		while (ABS(lastVel[LMOTOR]) < MINVEL || ABS(lastVel[RMOTOR]) < MINVEL)
 		{
@@ -455,16 +455,14 @@ bool moveOrangeBack(colorRange rangeA, void* ourBot)
 {
     bool retval = goToPom(rangeA, 0);
     if(!retval) return false;
-    moveArm(ARM_DOWN);
-    moveBasket(BASKET_UP);
     moveClaw(CLAW_OPEN);
 //Grab it, move it back and turn to look at it
-    mav(LMOTOR, 900);
-    mav(RMOTOR, 900);
-    //msleep(1250);
+    mav(LMOTOR, 1500);
+    mav(RMOTOR, 1500);
+    msleep(250);
     moveClaw(CLAW_CLOSED);
-    mav(LMOTOR, -900);
-    mav(RMOTOR, -900);
+    mav(LMOTOR, -1500);
+    mav(RMOTOR, -1500);
     msleep(750);
     mav(LMOTOR,  500);
     mav(RMOTOR, -500);
