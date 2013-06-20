@@ -15,11 +15,11 @@
 //! Define for Satan
 //#define SATAN 1
 //! Define for Anti-ADD meds
-//#define RITALIN 1
+#define RITALIN 1
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
-#define LOG 1
+//#define LOG 1
 
 #ifdef ONCOMP
 char* filename;
@@ -379,10 +379,12 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef RITALIN
 		tmpInt = checkContours(contours, orderedContours);
 		if (orderedContours.size() < 1 || tmpInt >= 0)
+		{
+			lastCenter=Point(-1,-1);
 #else
 		if (orderedContours.size() < 1)
+		{
 #endif
-        {
 #ifdef DEBUG_POMS
             cout << "We lost da dad gum pom" << endl;
 #endif
@@ -550,8 +552,11 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 #ifdef RITALIN
 		tmpInt=checkContours(contoursA, orderedContoursA);
         if(orderedContoursA.size()<1 || tmpInt < 0)
+        {
+        	lastCenter=Point(-1,-1);
 #else
         if (orderedContoursA.size() < 1) //We couldn't find anything to look for
+        {
 #endif
         {
 #ifdef DEBUG_RETGREEN
