@@ -558,7 +558,6 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         if (orderedContoursA.size() < 1) //We couldn't find anything to look for
         {
 #endif
-        {
 #ifdef DEBUG_RETGREEN
             cout << "We were unable find what we wanted" << endl;
 #endif
