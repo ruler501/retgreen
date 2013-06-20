@@ -19,7 +19,7 @@
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
-#define LOG 1
+//a#define LOG 1
 
 #ifdef ONCOMP
 char* filename;
@@ -49,8 +49,8 @@ enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, lastY=-1;
-const float errorX=7, errorSep=5;
-unsigned short lastVel[]={0,0,0,0};
+const float errorX=7, errorSep=15;
+short lastVel[]={0,0,0,0};
 unsigned short lastPos[]={0,0,0,0};
 #ifdef LOG
 Mat drawinga;
@@ -147,12 +147,12 @@ colorRange greenRange()
 
 void controlledServo(unsigned char port, unsigned short position, unsigned short milliseconds)
 {
-	unsigned short intervals=milliseconds/100, delta=(position - lastPos[port])/intervals;
+	unsigned short intervals=milliseconds/10, delta=(position - lastPos[port])/intervals;
 	for(int i=0; i<intervals; i++)
 	{
 		lastPos[port] += delta;
 		set_servo_position(port, lastPos[port]);
-		msleep(95);
+		msleep(9);
 	}
 	set_servo_position(port, position);
 	lastPos[port] = position;
