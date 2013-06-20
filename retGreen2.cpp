@@ -31,7 +31,7 @@ char* filename;
 
 #define RBIAS		5
 #define YBARRIER	115
-#define CENTERX		95
+#define CENTERX		97
 #define MAXLOST		20
 #define MAXCORRECT	10
 #define MINVEL		250
@@ -49,7 +49,7 @@ enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, lastY=-1;
-const float errorX=5, errorSep=5;
+const float errorX=7, errorSep=5;
 unsigned short lastVel[]={0,0,0,0};
 unsigned short lastPos[]={0,0,0,0};
 #ifdef LOG
@@ -179,7 +179,7 @@ void moveArm(int position)
     switch (position)
     {
     	case ARM_BASKET:
-			controlledServo(ARMPORT, 1400, 1000);
+			controlledServo(ARMPORT, 1400, 1500);
             break;
         case ARM_UP:
             controlledServo(ARMPORT, 1000, 1000);
