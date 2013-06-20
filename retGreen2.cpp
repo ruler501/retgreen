@@ -15,7 +15,7 @@
 //! Define for Satan
 //#define SATAN 1
 //! Define for Anti-ADD meds
-//#define RITALIN 1
+#define RITALIN 1
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
@@ -252,7 +252,7 @@ int checkContours(const vector< vector<Point> > &contours, const vector<vector<i
 		for(int i=0; i!=orderedContours.size(); i++)
 		{
 			minEnclosingCircle((Mat)contours[orderedContours[i][2]], center, radius);
-			if( (lastCenter.x-center.x)*(lastCenter.x-center.x)+(lastCenter.y-center.y)*(lastCenter.y-center.y) > 625)
+			if( (lastCenter.x-center.x)*(lastCenter.x-center.x)+(lastCenter.y-center.y)*(lastCenter.y-center.y) < ((lastVel[0]*lastVel[0])+lastVel[1]*lastVel[1])/6400)
 			{
 				good=i;
 				break;
@@ -388,7 +388,7 @@ bool goToPom(colorRange range, void* ourBot)
 		sort(orderedContours.begin(), orderedContours.end(), greaterArea);
 #ifdef RITALIN
 		tmpInt = checkContours(contours, orderedContours);
-		if (orderedContours.size() < 1 || tmpInt >= 0)
+		if (orderedContours.size() < 1 || tmpInt < 0)
 		{
 			lastCenter=Point(-1,-1);
 #else
