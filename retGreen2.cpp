@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include <cstdio>
 #include <stdlib.h>
 #include "opencv2/highgui/highgui.hpp"
@@ -15,11 +16,11 @@
 //! Define for Satan
 //#define SATAN 1
 //! Define for Anti-ADD meds
-#define RITALIN 1
+//#define RITALIN 1
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
-//a#define LOG 1
+#define LOG 1
 
 #ifdef ONCOMP
 char* filename;
@@ -30,11 +31,12 @@ char* filename;
 #endif// ONCOMP
 
 #define RBIAS		5
-#define YBARRIER	95
+#define YBARRIER	115
 #define CENTERX		100
 #define MAXLOST		20
 #define MAXCORRECT	10
 #define MINVEL		200
+#define GAMETIME	110
 
 using namespace cv;
 using namespace std;
@@ -49,7 +51,7 @@ enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, lastY=-1;
-const float errorX=10, errorSep=25;
+const float errorX=10, errorSep=5;
 short lastVel[]={0,0,0,0};
 unsigned short lastPos[]={0,0,0,0};
 #ifdef LOG
@@ -57,8 +59,6 @@ Mat drawinga;
 int pic=0;
 char dest[150], picCurrent[4];
 vector<int> compression_params;
-compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-compression_params.push_back(0);
 #endif// LOG
 #ifdef RITALIN
 Point lastCenter=Point(-1, -1);
@@ -128,7 +128,7 @@ colorRange orangeRange()
     orange.setHueRange(14);
     orange.setSatMin(105);
     orange.setSatRange(115);
-    orange.setValMin(140);
+    orange.setValMin(168);
     orange.setValRange(95);
     return orange;
 }
@@ -141,7 +141,7 @@ colorRange greenRange()
     green.setSatMin(120);
     green.setSatRange(135);
     green.setValMin(76);
-    green.setValRange(75);
+    green.setValRange(154);
     return green;
 }
 
@@ -243,6 +243,7 @@ char* itoa(int value, char* result, int base) {
 #ifdef RITALIN
 int checkContours(const vector< vector<Point> > &contours, const vector<vector<int> > &orderedContours)
 {
+	if( contours.size() < 1 || orderedContours.size() < 1) return -1;
 	int good=0;
 	Point2f center;
 	float radius;
@@ -282,7 +283,7 @@ bool goToPom(colorRange range, void* ourBot)
     {
         cap >> source;
 #ifdef LOG
-        strcpy(dest, "pics/");
+        strcpy(dest, "/kovan/vision/pics/");
         cout << "Pic" << ++pic << endl;
         itoa(pic,picCurrent,10);
         strcat(dest, picCurrent);
@@ -309,7 +310,7 @@ bool goToPom(colorRange range, void* ourBot)
         inRange(hueChan[2], range.getValMin(), range.getValMin()+range.getValRange(), tmpMatA);
         bitwise_and(singleChan, tmpMatA, singleChan, Mat());
 #ifdef LOG
-        strcpy(dest, "pics/");
+        strcpy(dest, "/kovan/vision/pics/");
         cout << "Pic" << pic << endl;
         strcat(dest, picCurrent);
         strcat(dest, "A.png");
@@ -342,7 +343,7 @@ bool goToPom(colorRange range, void* ourBot)
         orderedContours.clear();
         cap >> source;
 #ifdef LOG
-        strcpy(dest, "pics/");
+        strcpy(dest, "/kovan/vision/pics/");
         cout << "Pic" << ++pic << endl;
         itoa(pic,picCurrent,10);
         strcat(dest, picCurrent);
@@ -368,7 +369,7 @@ bool goToPom(colorRange range, void* ourBot)
         inRange(hueChan[2], range.getValMin(), range.getValMin()+range.getValRange(), tmpMatA);
         bitwise_and(singleChan, tmpMatA, singleChan, Mat());
 #ifdef LOG
-        strcpy(dest, "pics/");
+        strcpy(dest, "/kovan/vision/pics/");
         strcat(dest, picCurrent);
         strcat(dest, "A.png");
         imwrite(dest, singleChan, compression_params);
@@ -385,8 +386,8 @@ bool goToPom(colorRange range, void* ourBot)
         }
 		sort(orderedContours.begin(), orderedContours.end(), greaterArea);
 #ifdef RITALIN
-		tmpInt = checkContours(contours, orderedContours);
-		if (orderedContours.size() < 1 || tmpInt < 0)
+		if (orderedContours.size() > 0) tmpInt = checkContours(contours, orderedContours);
+		else if (orderedContours.size() < 1)
 		{
 			lastCenter=Point(-1,-1);
 #ifdef DEBUG_POMS
@@ -515,7 +516,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 //Find contours for what we want to grab to start
         cap >> source;
 #ifdef LOG
-        strcpy(dest, "pics/");
+        strcpy(dest, "/kovan/vision/pics/");
         cout << "Pic" << ++pic << endl;
         itoa(pic,picCurrent,10);
         strcat(dest, picCurrent);
@@ -542,7 +543,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         inRange(hueChan[2], rangeA.getValMin(), rangeA.getValMin()+rangeA.getValRange(), tmpMatA);
         bitwise_and(singleChan, tmpMatA, singleChan, Mat());
 #ifdef LOG
-        strcpy(dest, "pics/");
+        strcpy(dest, "/kovan/vision/pics/");
         strcat(dest, picCurrent);
         strcat(dest, "A.png");
         imwrite(dest, singleChan, compression_params);
@@ -559,8 +560,9 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         }
         sort(orderedContoursA.begin(), orderedContoursA.end(), greaterArea);
 #ifdef RITALIN
-		tmpInt=checkContours(contoursA, orderedContoursA);
-        if(orderedContoursA.size()<1 || tmpInt < 0)
+
+		if (orderedContoursA.size() > 0) tmpInt=checkContours(contoursA, orderedContoursA);
+        if(orderedContoursA.size() < 1)
         {
         	lastCenter=Point(-1,-1);
 #else
@@ -593,7 +595,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         inRange(hueChan[2], rangeB.getValMin(), rangeB.getValMin()+rangeB.getValRange(), tmpMatA);
         bitwise_and(singleChan, tmpMatA, singleChan, Mat());
 #ifdef LOG
-        strcpy(dest, "pics/");
+        strcpy(dest, "/kovan/vision/pics/");
         strcat(dest, picCurrent);
         strcat(dest, "B.png");
         imwrite(dest, singleChan, compression_params);
@@ -652,6 +654,10 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
 #ifdef TESTCASES_POMS
 int main(int argc, char* argv[])
 {
+#ifdef LOG
+	compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+	compression_params.push_back(0);
+#endif
     goToPom(orangeRange(), 0);
     off(LMOTOR);
     off(RMOTOR);
@@ -661,24 +667,65 @@ int main(int argc, char* argv[])
 #ifdef TESTCASES_RETGREEN
 int main(int argc, char* argv[])
 {
+	system("cd /kovan/vision");
+#ifdef LOG
+	compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+	compression_params.push_back(0);
+#endif
     cap.set(CV_CAP_PROP_FRAME_WIDTH, 160);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, 120);
     Mat sourcetmp;
     for(int i=0; i<15; i++) cap >> sourcetmp;
     moveArm(ARM_DOWN);
-    moveBasket(BASKET_UP);
+    moveBasket(BASKET_DOWN);
     moveClaw(CLAW_POPEN);
     enable_servos();
-    if(retrieveGreen(greenRange(), orangeRange(), 0))
+    wait_for_light(0);
+    shut_down_in(GAMETIME);
+    mav(LMOTOR, 1000);
+    mav(RMOTOR, 1000);
+    msleep(3000);
+    mav(LMOTOR,  1000);
+    mav(RMOTOR, -1000);
+    msleep(800);
+    off(LMOTOR);
+    off(RMOTOR);
+    for (int i=0; i<4; i++)
     {
-    	moveBasket(BASKET_UP);
-		moveArm(ARM_BASKET);
-		moveClaw(CLAW_OPEN);
-		moveArm(ARM_UP);
-		moveClaw(CLAW_CLOSED);
+		if(retrieveGreen(greenRange(), orangeRange(), 0))
+		{
+			moveBasket(BASKET_UP);
+			moveArm(ARM_BASKET);
+			moveClaw(CLAW_OPEN);
+			moveArm(ARM_DOWN);
+			moveClaw(CLAW_CLOSED);
+			moveBasket(BASKET_DOWN);
+		}
+		else
+		{
+#ifdef DEBUG
+			cout << "We lost everything good and wonderful" << endl;
+#endif// DEBUG
+			break;
+		}
+		mav(LMOTOR, -1000);
+		mav(RMOTOR, -1000);
+		msleep(2500);
+		off(LMOTOR);
+		off(RMOTOR);
     }
-    else cout << "We lost everything good and wonderful" << endl;
+    mav(LMOTOR, -1000);
+    mav(RMOTOR, -1000);
+    msleep(5000);
+    mav(LMOTOR, 1000);
+    mav(RMOTOR,  750);
+    msleep(1500);
+    moveArm(ARM_UP);
+    mav(LMOTOR, -1000);
+    mav(RMOTOR, 1000);
+    msleep(2500);
     ao();
+    moveBasket(BASKET_DUMP);
     disable_servos();
     cout << "We are done executing" << endl;
     return 0;
