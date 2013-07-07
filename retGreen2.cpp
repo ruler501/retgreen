@@ -197,7 +197,7 @@ void moveBasket(int position)
             controlledServo(BASKETPORT, 920, 600);
             break;
         case BASKET_DOWN:
-            controlledServo(BASKETPORT, 500, 600);
+            controlledServo(BASKETPORT, 700, 600);
             break;
 		case BASKET_DUMP:
 			controlledServo(BASKETPORT, 1250, 600);
@@ -619,7 +619,7 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
         for(unsigned int j=0; j < orderedContoursB.size(); j++)
         {
             minEnclosingCircle((Mat)contoursB[orderedContoursB[j][2]], centerB, radiusB);
-            if(((centerA.x-centerB.x)*(centerA.x-centerB.x) + (centerA.y-centerB.y)*(centerA.y-centerB.y) >= (errorSep+radiusB)*(errorSep+radiusB)))// || ((centerA.y-radiusA <= centerB.y) && (ABS(centerA.x-centerB.x) <= 15+2*radiusB)))
+            if(((centerA.x-centerB.x)*(centerA.x-centerB.x) + (centerA.y-centerB.y)*(centerA.y-centerB.y) >= (errorSep+radiusB)*(errorSep+radiusB)))// || ((centerA.y+radiusA <= centerB.y) && (ABS(centerA.x-centerB.x) <= errorSep/2+2*radiusB)))
             {
             	moveClaw(CLAW_CLOSED);
             	goToPom(rangeA, 0);
