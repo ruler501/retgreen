@@ -17,6 +17,8 @@
 //#define SATAN 1
 //! Define for Anti-ADD meds
 //#define RITALIN 1
+//! Define for superior drive control
+#define PID_CONTROL 1
 //! Define if you want to run test cases.
 #define TESTCASES_RETGREEN 1
 //! Define if we want copies of the pictures saved.
@@ -37,6 +39,9 @@ char* filename;
 #define MAXCORRECT	10
 #define MINVEL		200
 #define GAMETIME	110
+#define PPID        0.03
+#define IPID        0.01
+#define DPID        0.02
 
 using namespace cv;
 using namespace std;
@@ -51,7 +56,7 @@ enum { ARM_UP, ARM_DOWN, ARM_BASKET};
 enum { BASKET_UP, BASKET_DOWN, BASKET_DUMP };
 VideoCapture cap(0);
 int ticksLost=0, lastY=-1;
-const float errorX=10, errorSep=5;
+const float errorX=10, errorSep=-10;
 short lastVel[]={0,0,0,0};
 unsigned short lastPos[]={0,0,0,0};
 #ifdef LOG
@@ -197,12 +202,24 @@ void moveBasket(int position)
             controlledServo(BASKETPORT, 920, 600);
             break;
         case BASKET_DOWN:
-            controlledServo(BASKETPORT, 700, 600);
+            controlledServo(BASKETPORT, 750, 600);
             break;
 		case BASKET_DUMP:
 			controlledServo(BASKETPORT, 1250, 600);
 			break;
     }
+}
+
+void driveDirect(int left, int right)
+{
+    mav(LMOTOR, left);
+    mav(RMOTOR, right);
+}
+
+void motorsOff()
+{
+    off(LMOTOR);
+    off(RMOTOR);
 }
 
 //! Evaluates my custom data type to see whether the first's area is larger than the second's
@@ -279,6 +296,7 @@ bool goToPom(colorRange range, void* ourBot)
     int tmpInt;
     Point2f center;
     float radius;
+    int pidSum = 0, pidDif = 0, pidOld = 0;
     for(int i=0; i < 10; i++)
     {
         cap >> source;
@@ -400,21 +418,9 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
             cout << "We lost da dad gum pom" << endl;
 #endif
-			if (ticksLost < MAXCORRECT && (lastVel[LMOTOR] != 0  || lastVel[RMOTOR] != 0))
-			{
-				mav(LMOTOR, -2*lastVel[LMOTOR]);
-				mav(RMOTOR, -2*lastVel[RMOTOR]);
-			}
-			else if (ticksLost < MAXCORRECT+MAXLOST)
-			{
-				mav(LMOTOR, -200);
-				mav(RMOTOR,  200);
-			}
-			else
-			{
-				mav(LMOTOR,  200);
-				mav(RMOTOR, -200);
-			}
+			if (ticksLost < MAXCORRECT && (lastVel[LMOTOR] != 0  || lastVel[RMOTOR] != 0)) driveDirect(-2*lastVel[LMOTOR], -2*lastVel[RMOTOR]);
+			else if (ticksLost < MAXCORRECT+MAXLOST) driveDirect(-200, 200);
+			else driveDirect(200, -200)
 			if(ticksLost++ > MAXCORRECT+MAXLOST*3) { ticksLost=0; return false; }
             continue;
         }
@@ -427,8 +433,16 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
-		lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 4*(CENTERX-center.x);
+#ifdef PID_CONTROL
+        pidSum += (CENTERX-center.x);
+        pidDif = oldPid + (CENTERX-center.x);
+        pidOld = (CENTERX-center.x);
+        lastVel[LMOTOR] = 10*(YBARRIER-center.y) - PPID*(CENTERX-center.x) + IPID*pidSum - DPID*pidDif;
+        lastVel[LMOTOR] = 10*(YBARRIER-center.y) + PPID*(CENTERX-center.x) + IPID*pidSum + DPID*pidDif;
+#else// PID_CONTROL
+        lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 4*(CENTERX-center.x);
 		lastVel[RMOTOR] = 10*(YBARRIER-center.y) + 4*(CENTERX-center.x);
+#endif// PID_CONTROL
 		tmpInt = (YBARRIER-center.y) != 0 ? SIGN((YBARRIER-center.y)) : -1;
 		while (ABS(lastVel[LMOTOR]) < MINVEL || ABS(lastVel[RMOTOR]) < MINVEL)
 		{
@@ -438,14 +452,12 @@ bool goToPom(colorRange range, void* ourBot)
 #ifdef DEBUG_POMS
 		cout << "Turning l:" << lastVel[LMOTOR] << " r:" << lastVel[RMOTOR] << endl;
 #endif// DEBUG_POMS
-		mav(LMOTOR, lastVel[LMOTOR]);
-		mav(RMOTOR, lastVel[RMOTOR]);
+        driveDirect(lastVel[LMOTOR], lastVel[RMOTOR]);
     }
 #ifdef DEBUG_POMS
     cout << "We has da gone ta it" << endl;
 #endif
-    off(LMOTOR);
-    off(RMOTOR);
+    motorsOff();
     return true;
 }
 
@@ -456,27 +468,20 @@ bool moveOrangeBack(colorRange rangeA, void* ourBot)
     if(!retval) return false;
     moveClaw(CLAW_OPEN);
 //Grab it, move it back and turn to look at it
-    mav(LMOTOR, 1500);
-    mav(RMOTOR, 1500);
+    driveDirect(1500, 1500);
     msleep(250);
     moveClaw(CLAW_CLOSED);
-    mav(LMOTOR, -1500);
-    mav(RMOTOR, -1500);
+    driveDirect(-1500, -1500);
     msleep(750);
-    mav(LMOTOR,  500);
-    mav(RMOTOR, -500);
+    driveDirect(500, -500);
     moveClaw(CLAW_OPEN);
-    mav(LMOTOR, -500);
-    mav(RMOTOR,  500);
+    driveDirect(-500, 500);
     msleep(750);
-    mav(LMOTOR, -1000);
-    mav(RMOTOR, -1000);
+    driveDirect(-1000, -1000);
     msleep(1250);
-    mav(LMOTOR,  900);
-    mav(RMOTOR, -900);
+    driveDirect(900, -900);
     msleep(100);
-    off(LMOTOR);
-    off(RMOTOR);
+    motorsOff();
 #ifdef RITALIN
 	//invalidate the sensor after we screw with it
 	lastCenter=Point(-1, -1);
@@ -623,17 +628,13 @@ bool retrieveGreen(colorRange rangeA, colorRange rangeB, void* ourBot)
             {
             	moveClaw(CLAW_CLOSED);
             	goToPom(rangeA, 0);
-            	mav(LMOTOR, -900);
-            	mav(RMOTOR, -900);
+            	driveDirect(-900, -900);
             	msleep(200);
-            	off(LMOTOR);
-				off(RMOTOR);
+            	motorsOff();
 				moveClaw(CLAW_OPEN);
-				mav(LMOTOR, 900);
-				mav(RMOTOR, 900);
+				driveDirect(900, 900);
 				msleep(750);
-				off(LMOTOR);
-				off(RMOTOR);
+				motorsOff();
 				moveClaw(CLAW_CLOSED);
 				cout << "We got it" << endl;
 				return true;
@@ -682,14 +683,12 @@ int main(int argc, char* argv[])
     enable_servos();
     wait_for_light(0);
     shut_down_in(GAMETIME);
-    mav(LMOTOR, 1000);
-    mav(RMOTOR, 1000);
-    msleep(3000);
-    mav(LMOTOR,  1000);
-    mav(RMOTOR, -1000);
-    msleep(800);
-    off(LMOTOR);
-    off(RMOTOR);
+    msleep(1000);
+    driveDirect(1000, 900);
+    msleep(3500);
+    driveDirect(1000, -1000);
+    msleep(500);
+    motorsOff();
     for (int i=0; i<4; i++)
     {
 		if(retrieveGreen(greenRange(), orangeRange(), 0))
@@ -700,29 +699,27 @@ int main(int argc, char* argv[])
 			moveArm(ARM_DOWN);
 			moveClaw(CLAW_CLOSED);
 			moveBasket(BASKET_DOWN);
+			driveDirect(-1000, -1000);
+			msleep(500);
+			motorsOff();
 		}
 		else
 		{
 #ifdef DEBUG
 			cout << "We lost everything good and wonderful" << endl;
 #endif// DEBUG
-			break;
+			continue;
 		}
-		mav(LMOTOR, -1000);
-		mav(RMOTOR, -1000);
+		driveDirect(-1000, -1000);
 		msleep(2500);
-		off(LMOTOR);
-		off(RMOTOR);
+		motorsOff();
     }
-    mav(LMOTOR, -1000);
-    mav(RMOTOR, -1000);
+    driveDirect(-1000, -1000);
     msleep(5000);
-    mav(LMOTOR, 1000);
-    mav(RMOTOR,  750);
+    driveDirect(1000, 750);
     msleep(1500);
     moveArm(ARM_UP);
-    mav(LMOTOR, -1000);
-    mav(RMOTOR, 1000);
+    driveDirect(-1000, 1000);
     msleep(2500);
     ao();
     moveBasket(BASKET_DUMP);
