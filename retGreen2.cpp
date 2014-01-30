@@ -39,9 +39,10 @@ char* filename;
 #define MAXCORRECT	10
 #define MINVEL		200
 #define GAMETIME	110
-#define PPID        0.03
-#define IPID        0.01
-#define DPID        0.02
+#define PPID        1.25
+#define IPID        0.1
+#define DPID        0.75
+#define PIDSUMMAX   3000
 
 using namespace cv;
 using namespace std;
@@ -434,11 +435,12 @@ bool goToPom(colorRange range, void* ourBot)
         cout << "Center x:" << center.x << " y:" << center.y << " with radius " << radius << " and area " << orderedContours[0][0] << endl;
 #endif// DEBUG_POMS
 #ifdef PID_CONTROL
-        pidSum += (CENTERX-center.x);
-        pidDif = oldPid + (CENTERX-center.x);
-        pidOld = (CENTERX-center.x);
-        lastVel[LMOTOR] = 10*(YBARRIER-center.y) - PPID*(CENTERX-center.x) + IPID*pidSum - DPID*pidDif;
-        lastVel[LMOTOR] = 10*(YBARRIER-center.y) + PPID*(CENTERX-center.x) + IPID*pidSum + DPID*pidDif;
+        pidSum += CENTERX-center.x;
+        if (pidSum > PIDSUMLIMIT) pidSum = PIDSUMLIMIT;
+        pidDif = CENTERX - center.x - pidOld;
+        pidOld = CENTERX - center.x;
+        lastVel[LMOTOR] = 8*(YBARRIER-center.y) - PPID*(CENTERX-center.x) + IPID*pidSum + DPID*pidDif;
+        lastVel[LMOTOR] = 8*(YBARRIER-center.y) + PPID*(CENTERX-center.x) + IPID*pidSum - DPID*pidDif;
 #else// PID_CONTROL
         lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 4*(CENTERX-center.x);
 		lastVel[RMOTOR] = 10*(YBARRIER-center.y) + 4*(CENTERX-center.x);
