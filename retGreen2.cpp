@@ -39,10 +39,10 @@ char* filename;
 #define MAXCORRECT	10
 #define MINVEL		200
 #define GAMETIME	110
-#define PPID        1.25
-#define IPID        0.1
-#define DPID        0.75
-#define PIDSUMMAX   3000
+#define PPID        1.00
+#define IPID        0.50
+#define DPID        1.33
+#define PIDSUMMAX   1000
 
 using namespace cv;
 using namespace std;
@@ -439,8 +439,8 @@ bool goToPom(colorRange range, void* ourBot)
         if (pidSum > PIDSUMLIMIT) pidSum = PIDSUMLIMIT;
         pidDif = CENTERX - center.x - pidOld;
         pidOld = CENTERX - center.x;
-        lastVel[LMOTOR] = 8*(YBARRIER-center.y) - PPID*(CENTERX-center.x) + IPID*pidSum + DPID*pidDif;
-        lastVel[LMOTOR] = 8*(YBARRIER-center.y) + PPID*(CENTERX-center.x) + IPID*pidSum - DPID*pidDif;
+        lastVel[LMOTOR] = 8*(YBARRIER-center.y) - PPID*(CENTERX-center.x) - IPID*pidSum - DPID*pidDif;
+        lastVel[LMOTOR] = 8*(YBARRIER-center.y) + PPID*(CENTERX-center.x) + IPID*pidSum + DPID*pidDif;
 #else// PID_CONTROL
         lastVel[LMOTOR] = 10*(YBARRIER-center.y) - 4*(CENTERX-center.x);
 		lastVel[RMOTOR] = 10*(YBARRIER-center.y) + 4*(CENTERX-center.x);
